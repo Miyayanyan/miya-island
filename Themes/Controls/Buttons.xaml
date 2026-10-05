@@ -1,0 +1,276 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceDictionary Source="Focus.xaml" />
+  </ResourceDictionary.MergedDictionaries>
+  <!-- 所有缩放只作用于背景层；文字和图标保持原尺寸。 -->
+
+  <ControlTemplate x:Key="Button.GlassTemplate" TargetType="{x:Type Button}">
+    <Grid x:Name="Root" SnapsToDevicePixels="True">
+
+      <Border x:Name="BackgroundLayer" Background="{DynamicResource Brush.ControlTransparent}" CornerRadius="{StaticResource Radius.Button}" RenderTransformOrigin=".5,.5">
+        <Border.RenderTransform><ScaleTransform x:Name="BackgroundScale" /></Border.RenderTransform>
+        <Grid>
+          <Border x:Name="NormalSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Radius.Button}" />
+          <Border x:Name="HoverSurface" Background="{DynamicResource Brush.ControlHover}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Radius.Button}" Opacity="0" />
+          <Border BorderBrush="{DynamicResource Brush.ControlWhite}" BorderThickness="1" CornerRadius="{StaticResource Radius.Button}" Opacity=".14" IsHitTestVisible="False">
+            <Border.OpacityMask><LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+              <GradientStop Offset="0" Color="{DynamicResource Color.ControlWhite}" />
+              <GradientStop Offset=".5" Color="{DynamicResource Color.ControlTransparent}" />
+            </LinearGradientBrush></Border.OpacityMask>
+          </Border>
+        </Grid>
+      </Border>
+      <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
+    </Grid>
+    <ControlTemplate.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+
+        <Trigger.EnterActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="HoverSurface" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="NormalSurface" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.EnterActions>
+        <Trigger.ExitActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="HoverSurface" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="NormalSurface" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.ExitActions>
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Trigger.EnterActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleX" To=".97" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleY" To=".97" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.EnterActions>
+        <Trigger.ExitActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.ExitActions>
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Root" Property="Opacity" Value=".4" /></Trigger>
+    </ControlTemplate.Triggers>
+  </ControlTemplate>
+
+  <ControlTemplate x:Key="Button.AccentTemplate" TargetType="{x:Type Button}">
+    <Grid x:Name="Root" SnapsToDevicePixels="True">
+
+      <Border x:Name="BackgroundLayer" Background="{DynamicResource Brush.ControlTransparent}" CornerRadius="{StaticResource Radius.Button}" RenderTransformOrigin=".5,.5">
+        <Border.RenderTransform><ScaleTransform x:Name="BackgroundScale" /></Border.RenderTransform>
+        <Grid>
+          <Border x:Name="NormalSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Radius.Button}" />
+          <Border x:Name="HoverSurface" Background="{DynamicResource Brush.ControlWhite}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Radius.Button}" Opacity="0" />
+          <Border BorderBrush="{DynamicResource Brush.ControlWhite}" BorderThickness="1" CornerRadius="{StaticResource Radius.Button}" Opacity=".35" IsHitTestVisible="False">
+            <Border.OpacityMask><LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+              <GradientStop Offset="0" Color="{DynamicResource Color.ControlWhite}" />
+              <GradientStop Offset=".5" Color="{DynamicResource Color.ControlTransparent}" />
+            </LinearGradientBrush></Border.OpacityMask>
+          </Border>
+        </Grid>
+      </Border>
+      <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
+    </Grid>
+    <ControlTemplate.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+
+        <Trigger.EnterActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="HoverSurface" Storyboard.TargetProperty="Opacity" To=".06" Duration="0:0:0.12" />
+
+        </Storyboard></BeginStoryboard></Trigger.EnterActions>
+        <Trigger.ExitActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="HoverSurface" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.12" />
+
+        </Storyboard></BeginStoryboard></Trigger.ExitActions>
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Trigger.EnterActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleX" To=".97" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleY" To=".97" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.EnterActions>
+        <Trigger.ExitActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.ExitActions>
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Root" Property="Opacity" Value=".4" /></Trigger>
+    </ControlTemplate.Triggers>
+  </ControlTemplate>
+
+  <ControlTemplate x:Key="Button.GhostTemplate" TargetType="{x:Type Button}">
+    <Grid x:Name="Root" SnapsToDevicePixels="True">
+
+      <Border x:Name="BackgroundLayer" Background="{DynamicResource Brush.ControlTransparent}" CornerRadius="{StaticResource Radius.Button}" RenderTransformOrigin=".5,.5">
+        <Border.RenderTransform><ScaleTransform x:Name="BackgroundScale" /></Border.RenderTransform>
+        <Grid>
+          <Border x:Name="NormalSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Radius.Button}" />
+          <Border x:Name="HoverSurface" Background="{DynamicResource Brush.Control}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Radius.Button}" Opacity="0" />
+          <Border BorderBrush="{DynamicResource Brush.ControlWhite}" BorderThickness="1" CornerRadius="{StaticResource Radius.Button}" Opacity="0" IsHitTestVisible="False">
+            <Border.OpacityMask><LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+              <GradientStop Offset="0" Color="{DynamicResource Color.ControlWhite}" />
+              <GradientStop Offset=".5" Color="{DynamicResource Color.ControlTransparent}" />
+            </LinearGradientBrush></Border.OpacityMask>
+          </Border>
+        </Grid>
+      </Border>
+      <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
+    </Grid>
+    <ControlTemplate.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}" />
+        <Trigger.EnterActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="HoverSurface" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="NormalSurface" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.EnterActions>
+        <Trigger.ExitActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="HoverSurface" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="NormalSurface" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.ExitActions>
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Trigger.EnterActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleX" To=".97" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleY" To=".97" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.EnterActions>
+        <Trigger.ExitActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.ExitActions>
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Root" Property="Opacity" Value=".4" /></Trigger>
+    </ControlTemplate.Triggers>
+  </ControlTemplate>
+
+  <ControlTemplate x:Key="Button.IconTemplate" TargetType="{x:Type Button}">
+    <Grid x:Name="Root" SnapsToDevicePixels="True">
+
+      <Border x:Name="BackgroundLayer" Background="{DynamicResource Brush.ControlTransparent}" CornerRadius="{StaticResource Radius.Button}" RenderTransformOrigin=".5,.5">
+        <Border.RenderTransform><ScaleTransform x:Name="BackgroundScale" /></Border.RenderTransform>
+        <Grid>
+          <Border x:Name="NormalSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Radius.Button}" />
+          <Border x:Name="HoverSurface" Background="{DynamicResource Brush.ControlHover}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Radius.Button}" Opacity="0" />
+          <Border BorderBrush="{DynamicResource Brush.ControlWhite}" BorderThickness="1" CornerRadius="{StaticResource Radius.Button}" Opacity="0" IsHitTestVisible="False">
+            <Border.OpacityMask><LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+              <GradientStop Offset="0" Color="{DynamicResource Color.ControlWhite}" />
+              <GradientStop Offset=".5" Color="{DynamicResource Color.ControlTransparent}" />
+            </LinearGradientBrush></Border.OpacityMask>
+          </Border>
+        </Grid>
+      </Border>
+      <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
+    </Grid>
+    <ControlTemplate.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}" />
+        <Trigger.EnterActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="HoverSurface" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="NormalSurface" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.EnterActions>
+        <Trigger.ExitActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="HoverSurface" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="NormalSurface" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.ExitActions>
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Trigger.EnterActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleX" To=".97" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleY" To=".97" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.EnterActions>
+        <Trigger.ExitActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.ExitActions>
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Root" Property="Opacity" Value=".4" /></Trigger>
+    </ControlTemplate.Triggers>
+  </ControlTemplate>
+
+  <ControlTemplate x:Key="Button.LensTemplate" TargetType="{x:Type Button}">
+    <Grid x:Name="Root" SnapsToDevicePixels="True">
+      <Border Background="{DynamicResource Brush.Lens}" CornerRadius="{StaticResource Radius.ControlPill}" IsHitTestVisible="False">
+        <Border.Effect><DropShadowEffect Color="{DynamicResource Color.ControlShadow}" Direction="270" ShadowDepth="3" BlurRadius="10" Opacity=".18" /></Border.Effect>
+      </Border>
+      <Border x:Name="BackgroundLayer" Background="{DynamicResource Brush.ControlTransparent}" CornerRadius="{StaticResource Radius.ControlPill}" RenderTransformOrigin=".5,.5">
+        <Border.RenderTransform><ScaleTransform x:Name="BackgroundScale" /></Border.RenderTransform>
+        <Grid>
+          <Border x:Name="NormalSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Radius.ControlPill}" />
+          <Border x:Name="HoverSurface" Background="{DynamicResource Brush.ControlWhite}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Radius.ControlPill}" Opacity="0" />
+          <Border Background="{DynamicResource Brush.LensInnerHighlight}" CornerRadius="{StaticResource Radius.ControlPill}" IsHitTestVisible="False" />
+        </Grid>
+      </Border>
+      <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
+    </Grid>
+    <ControlTemplate.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+
+        <Trigger.EnterActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="HoverSurface" Storyboard.TargetProperty="Opacity" To=".06" Duration="0:0:0.12" />
+
+        </Storyboard></BeginStoryboard></Trigger.EnterActions>
+        <Trigger.ExitActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="HoverSurface" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.12" />
+
+        </Storyboard></BeginStoryboard></Trigger.ExitActions>
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Trigger.EnterActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleX" To=".96" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleY" To=".96" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.EnterActions>
+        <Trigger.ExitActions><BeginStoryboard><Storyboard>
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.12" />
+          <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.12" />
+        </Storyboard></BeginStoryboard></Trigger.ExitActions>
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Root" Property="Opacity" Value=".4" /></Trigger>
+    </ControlTemplate.Triggers>
+  </ControlTemplate>
+
+  <Style TargetType="{x:Type Button}">
+    <Setter Property="Height" Value="28" />
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="FontFamily" Value="{StaticResource Font.UI}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Control}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Separator}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+    <Setter Property="Template" Value="{StaticResource Button.GlassTemplate}" />
+  </Style>
+  <Style x:Key="Button.Glass" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}" />
+  <Style x:Key="Button.Primary" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="Background" Value="{DynamicResource Brush.Primary}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.ControlWhite}" />
+    <Setter Property="Template" Value="{StaticResource Button.AccentTemplate}" />
+  </Style>
+  <Style x:Key="Button.Danger" TargetType="{x:Type Button}" BasedOn="{StaticResource Button.Primary}">
+    <Setter Property="Background" Value="{DynamicResource Brush.Danger}" />
+  </Style>
+  <Style x:Key="Button.Ghost" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="Background" Value="{DynamicResource Brush.ControlTransparent}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Ink2}" />
+    <Setter Property="Template" Value="{StaticResource Button.GhostTemplate}" />
+  </Style>
+  <Style x:Key="Button.Icon" TargetType="{x:Type Button}" BasedOn="{StaticResource Button.Ghost}">
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Template" Value="{StaticResource Button.IconTemplate}" />
+  </Style>
+  <Style x:Key="Button.Lens" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="Width" Value="40" />
+    <Setter Property="Height" Value="40" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Lens}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.LensBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}" />
+    <Setter Property="Template" Value="{StaticResource Button.LensTemplate}" />
+  </Style>
+</ResourceDictionary>
+

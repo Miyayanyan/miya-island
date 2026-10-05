@@ -1,0 +1,100 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+  <!--
+    Miya Island v0.7 Design Tokens。
+    主岛、悬浮歌词和弹层都从这里取值。颜色用 DynamicResource 引用，
+    以后切换 Milk / Rose / Lavender / Midnight / Clear Glass 只需要替换这里的画刷。
+    当前数值 = Midnight（默认 preset，最接近 v0.6.1）。
+  -->
+
+  <!--
+    字体：系统字体，不打包。
+    不用 Segoe UI Variable：它是可变字体，WPF 不支持字体变体，小字号缺少 hinting，会出现锯齿。
+  -->
+  <FontFamily x:Key="Font.UI">Segoe UI, Microsoft YaHei UI</FontFamily>
+  <FontFamily x:Key="Font.Display">Segoe UI, Microsoft YaHei UI</FontFamily>
+
+  <!-- 字号（DIP） -->
+  <sys:Double x:Key="FontSize.Micro">11</sys:Double>
+  <sys:Double x:Key="FontSize.Caption">12</sys:Double>
+  <sys:Double x:Key="FontSize.Body">13</sys:Double>
+  <sys:Double x:Key="FontSize.Title">14</sys:Double>
+  <sys:Double x:Key="FontSize.Lyric">15</sys:Double>
+  <sys:Double x:Key="FontSize.Headline">17</sys:Double>
+  <sys:Double x:Key="FontSize.FloatLyric">18</sys:Double>
+  <sys:Double x:Key="FontSize.FloatLyricDouble">20</sys:Double>
+
+  <!-- 品牌色（不随 preset 变化） -->
+  <Color x:Key="Color.Accent">#FF8B7CFF</Color>
+  <Color x:Key="Color.PrimaryStart">#FF8B7CFF</Color>
+  <Color x:Key="Color.PrimaryEnd">#FFD884C0</Color>
+  <Color x:Key="Color.DangerStart">#FFD74F74</Color>
+  <Color x:Key="Color.DangerEnd">#FFE0466F</Color>
+  <SolidColorBrush x:Key="Brush.Accent" Color="{StaticResource Color.Accent}" />
+  <SolidColorBrush x:Key="Brush.Success" Color="#FF4FBF8E" />
+  <SolidColorBrush x:Key="Brush.Warning" Color="#FFF0B878" />
+  <SolidColorBrush x:Key="Brush.Overdue" Color="#FFFF8FAE" />
+  <LinearGradientBrush x:Key="Brush.Primary" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Offset="0" Color="{StaticResource Color.PrimaryStart}" />
+    <GradientStop Offset="1" Color="{StaticResource Color.PrimaryEnd}" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Brush.Danger" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Offset="0" Color="{StaticResource Color.DangerStart}" />
+    <GradientStop Offset="1" Color="{StaticResource Color.DangerEnd}" />
+  </LinearGradientBrush>
+
+  <!-- 随 preset 变化的颜色（Midnight） -->
+  <SolidColorBrush x:Key="Brush.IslandBase" Color="#BD100F16" />
+  <SolidColorBrush x:Key="Brush.IslandBorder" Color="#FF292930" />
+  <SolidColorBrush x:Key="Brush.Ink" Color="#FFFFFFFF" />
+  <SolidColorBrush x:Key="Brush.Ink2" Color="#ADFFFFFF" />
+  <SolidColorBrush x:Key="Brush.Ink3" Color="#70FFFFFF" />
+  <SolidColorBrush x:Key="Brush.Lyric" Color="#FFC7BEFF" />
+  <SolidColorBrush x:Key="Brush.Control" Color="#14FFFFFF" />
+  <SolidColorBrush x:Key="Brush.ControlHover" Color="#21FFFFFF" />
+  <SolidColorBrush x:Key="Brush.ControlPressed" Color="#0DFFFFFF" />
+  <SolidColorBrush x:Key="Brush.Well" Color="#0FFFFFFF" />
+  <SolidColorBrush x:Key="Brush.Separator" Color="#1AFFFFFF" />
+  <SolidColorBrush x:Key="Brush.Lens" Color="#24FFFFFF" />
+
+  <!-- Liquid Glass 层（Midnight）。数值来自 JoyTaung Figma → Thor GlassPolicy，见设计方案页。 -->
+  <LinearGradientBrush x:Key="Brush.GlassSheen" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Offset="0" Color="#1AFFFFFF" />
+    <GradientStop Offset="0.46" Color="#00FFFFFF" />
+    <GradientStop Offset="1" Color="#2E000000" />
+  </LinearGradientBrush>
+  <SolidColorBrush x:Key="Brush.GlassInnerDark" Color="#4D000000"/>
+  <SolidColorBrush x:Key="Brush.GlassInnerLight" Color="#38FFFFFF"/>
+  <SolidColorBrush x:Key="Brush.GlassEdge" Color="#24FFFFFF" />
+  <RadialGradientBrush x:Key="Brush.GlassRimTopLeft" GradientOrigin="0.06,0" Center="0.06,0" RadiusX="0.7" RadiusY="1.3" Opacity="0.45">
+    <GradientStop Offset="0" Color="#F2FFFFFF" />
+    <GradientStop Offset="0.6" Color="#00FFFFFF" />
+  </RadialGradientBrush>
+  <RadialGradientBrush x:Key="Brush.GlassRimBottomRight" GradientOrigin="0.96,1" Center="0.96,1" RadiusX="0.7" RadiusY="1.3" Opacity="0.45">
+    <GradientStop Offset="0" Color="#B3FFFFFF" />
+    <GradientStop Offset="0.6" Color="#00FFFFFF" />
+  </RadialGradientBrush>
+
+  <SolidColorBrush x:Key="Brush.CropMask" Color="#99000000" />
+  <SolidColorBrush x:Key="Brush.SettingsBase" Color="#D1100F16" />
+
+  <SolidColorBrush x:Key="Brush.PopupBase" Color="#E6100F16" />
+  <Color x:Key="Color.GlassShadow">#FF000000</Color>
+  <sys:Double x:Key="Glass.ShadowOpacity">0.32</sys:Double>
+  <DropShadowEffect x:Key="Effect.GlassText" Opacity="0"/>
+  <!-- 圆角 -->
+  <CornerRadius x:Key="Radius.XL">26</CornerRadius>
+  <CornerRadius x:Key="Radius.L">24</CornerRadius>
+  <CornerRadius x:Key="Radius.M">14</CornerRadius>
+  <CornerRadius x:Key="Radius.S">10</CornerRadius>
+  <CornerRadius x:Key="Radius.XS">6</CornerRadius>
+  <!-- 按钮用圆角矩形（播放键“透镜”除外，仍为圆形）；焦点环在按钮外 4 DIP，圆角相应加大 -->
+  <CornerRadius x:Key="Radius.Button">8</CornerRadius>
+  <CornerRadius x:Key="Radius.ButtonFocus">12</CornerRadius>
+
+  <!-- v0.6.1 已在 XAML 中使用的键，保留同名以免改动范围扩大 -->
+  <SolidColorBrush x:Key="IslandBackground" Color="#BD100F16" />
+  <SolidColorBrush x:Key="MutedText" Color="#FFA7A7AE" />
+  <SolidColorBrush x:Key="Accent" Color="{StaticResource Color.Accent}" />
+</ResourceDictionary>

@@ -1,0 +1,17 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style TargetType="ContextMenu">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}"/><Setter Property="FontFamily" Value="{StaticResource Font.UI}"/><Setter Property="FontSize" Value="{StaticResource FontSize.Caption}"/>
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContextMenu">
+      <Grid Margin="12"><Border CornerRadius="12" Background="{DynamicResource Brush.PopupBase}" IsHitTestVisible="False"><Border.Effect><DropShadowEffect Color="{DynamicResource Color.ControlShadow}" BlurRadius="28" ShadowDepth="10" Opacity=".32"/></Border.Effect></Border>
+        <Border CornerRadius="12" Background="{DynamicResource Brush.GlassSheen}" BorderBrush="{DynamicResource Brush.IslandBorder}" BorderThickness="1" Padding="4"><ItemsPresenter/></Border>
+      </Grid>
+    </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style TargetType="MenuItem">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}"/><Setter Property="Padding" Value="10,6"/>
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="MenuItem">
+      <Border x:Name="Surface" CornerRadius="8" Background="{DynamicResource Brush.ControlTransparent}" Padding="{TemplateBinding Padding}"><ContentPresenter ContentSource="Header" RecognizesAccessKey="True"/></Border>
+      <ControlTemplate.Triggers><Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Surface" Property="Background" Value="{DynamicResource Brush.ControlHover}"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value=".4"/></Trigger></ControlTemplate.Triggers>
+    </ControlTemplate></Setter.Value></Setter>
+  </Style>
+</ResourceDictionary>

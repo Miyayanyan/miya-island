@@ -1,0 +1,20 @@
+<Application x:Class="MiyaIsland.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnExplicitShutdown">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Themes/Tokens.xaml" />
+        <ResourceDictionary Source="Themes/Icons.xaml" />
+        <ResourceDictionary Source="Themes/Controls.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+
+      <Style TargetType="TextBlock"><Setter Property="Effect" Value="{DynamicResource Effect.GlassText}"/></Style>
+      <!-- 在 GPT 的玻璃按钮样式上补一个 3 DIP 外边距，沿用 v0.6.1 的按钮间距 -->
+      <Style TargetType="Button" BasedOn="{StaticResource Button.Glass}">
+        <Setter Property="Margin" Value="3" />
+      </Style>
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

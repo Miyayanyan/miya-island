@@ -1,0 +1,19 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Focus 必须最先加载；其余字典依赖统一焦点环和补充视觉 token。 -->
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceDictionary Source="Controls/Focus.xaml" />
+    <ResourceDictionary Source="Controls/Buttons.xaml" />
+    <ResourceDictionary Source="Controls/ComboBox.xaml" />
+    <ResourceDictionary Source="Controls/Toggle.xaml" />
+    <ResourceDictionary Source="Controls/Slider.xaml" />
+    <ResourceDictionary Source="Controls/TextBox.xaml" />
+    <ResourceDictionary Source="Controls/ProgressBar.xaml" />
+    <ResourceDictionary Source="Controls/ScrollBar.xaml" />
+    <ResourceDictionary Source="Controls/ToolTip.xaml" />
+    <ResourceDictionary Source="Controls/ListBox.xaml" />
+    <ResourceDictionary Source="Controls/TaskCheck.xaml" />
+    <ResourceDictionary Source="Controls/TaskSegment.xaml" />
+    <ResourceDictionary Source="Controls/Menus.xaml" />
+  </ResourceDictionary.MergedDictionaries>
+</ResourceDictionary>

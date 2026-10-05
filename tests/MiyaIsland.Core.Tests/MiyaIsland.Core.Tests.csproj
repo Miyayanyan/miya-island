@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all" />
+    <Using Include="Xunit" />
+    <Compile Include="..\..\Services\StartupGreetingQueue.cs" Link="Services\StartupGreetingQueue.cs" />
+    <Compile Include="..\..\Services\GlassPalette.cs" Link="Services\GlassPalette.cs" />
+    <Compile Include="..\..\Services\TaskRetention.cs" Link="Services\TaskRetention.cs" />
+    <Compile Include="..\..\Services\AppearanceSettingsMigration.cs" Link="Services\AppearanceSettingsMigration.cs" />
+    <Compile Include="..\..\Services\AppearanceSettingsService.cs" Link="Services\AppearanceSettingsService.cs" />
+    <Compile Include="..\..\Services\TaskPresentation.cs" Link="Services\TaskPresentation.cs" />
+    <Compile Include="..\..\Services\LyricCursor.cs" Link="Services\LyricCursor.cs" />
+    <Compile Include="..\..\Services\LyricQuery.cs" Link="Services\LyricQuery.cs" />
+    <Compile Include="..\..\Services\LyricService.cs" Link="Services\LyricService.cs" />
+    <Compile Include="..\..\Models\LyricLine.cs" Link="Models\LyricLine.cs" />
+    <Compile Include="..\..\Services\PositionPolicy.cs" Link="Services\PositionPolicy.cs" />
+    <Compile Include="..\..\Models\AppearanceSettings.cs" Link="Models\AppearanceSettings.cs" />
+    <Compile Include="..\..\Models\TaskItem.cs" Link="Models\TaskItem.cs" />
+    <Compile Include="..\..\Services\TaskStore.cs" Link="Services\TaskStore.cs" />
+    <Compile Include="..\..\Services\ReminderScheduler.cs" Link="Services\ReminderScheduler.cs" />
+    <Compile Include="..\..\Services\TaskTime.cs" Link="Services\TaskTime.cs" />
+    <Compile Include="..\..\Models\GreetingContext.cs" Link="Models\GreetingContext.cs" />
+    <Compile Include="..\..\Services\GreetingService.cs" Link="Services\GreetingService.cs" />
+    <EmbeddedResource Include="..\..\Assets\greetings.zh-CN.json" LogicalName="MiyaIsland.Assets.greetings.zh-CN.json" WithCulture="false" />
+    <Compile Include="..\..\Services\AutostartService.cs" Link="Services\AutostartService.cs" />
+  </ItemGroup>
+</Project>
+
+

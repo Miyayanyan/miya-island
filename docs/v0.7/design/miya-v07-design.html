@@ -1,0 +1,1892 @@
+<title>Miya Island v0.7 设计方案</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a spec bench. Live island on a fake Windows desktop first, then the audit,
+   tokens, glass, controls, icons, motion, compact, lyrics and feature specs in one column,
+   with a sticky section index on wide screens. */
+:root {
+  --bg: #f6f4f9; --panel: #ffffff; --fg: #221c2b; --muted: #6d6478; --line: #e4deeb;
+  --accent: #6a55d8; --accent-soft: #ece8fc; --ok: #2f7d5c; --warn: #9a5b12; --bad: #b5375c; --code: #f1eef6;
+  --font: "Noto Sans SC", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+  --wpf: "Segoe UI Variable Text", "Segoe UI", "Noto Sans SC", "Microsoft YaHei UI", system-ui, sans-serif;
+  --wpf-display: "Segoe UI Variable Display", "Segoe UI", "Noto Sans SC", "Microsoft YaHei UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121016; --panel: #1b1820; --fg: #eee9f4; --muted: #a79fb2; --line: #2c2733;
+  --accent: #b3a6ff; --accent-soft: #2a2440; --ok: #8ed4b3; --warn: #f0b878; --bad: #ff98b4; --code: #1f1b26; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121016; --panel: #1b1820; --fg: #eee9f4; --muted: #a79fb2; --line: #2c2733;
+  --accent: #b3a6ff; --accent-soft: #2a2440; --ok: #8ed4b3; --warn: #f0b878; --bad: #ff98b4; --code: #1f1b26; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 72px; display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1180px) { .wrap { grid-template-columns: 188px minmax(0, 1fr); gap: 36px; } }
+.toc { display: none; }
+@media (min-width: 1180px) {
+  .toc { display: block; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 13.5px; }
+  .toc a { display: block; padding: 5px 10px; border-radius: 8px; color: var(--muted); text-decoration: none; }
+  .toc a:hover { color: var(--fg); background: var(--accent-soft); }
+  .toc a:focus-visible { outline: 2px solid var(--accent); }
+}
+main { min-width: 0; display: grid; gap: 56px; }
+header.top { display: grid; gap: 10px; }
+.chip-state { justify-self: start; font-size: 12px; font-weight: 600; letter-spacing: .05em; color: var(--warn); border: 1px solid currentColor; border-radius: 999px; padding: 1px 10px; }
+h1 { margin: 0; font-size: clamp(28px, 3.6vw, 40px); line-height: 1.15; letter-spacing: -.01em; text-wrap: balance; }
+h2 { margin: 0; font-size: 24px; line-height: 1.25; text-wrap: balance; }
+h3 { margin: 0; font-size: 17px; line-height: 1.35; }
+p { margin: 0; }
+.lede { color: var(--muted); max-width: 72ch; }
+.lede b, .muted b { color: var(--fg); font-weight: 600; }
+.muted { color: var(--muted); }
+.meta-row { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.meta-row code { font-family: var(--mono); font-size: 12.5px; color: var(--fg); }
+section { display: grid; gap: 18px; min-width: 0; scroll-margin-top: 20px; }
+.sec-head { display: grid; gap: 6px; }
+.sec-head .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; color: var(--accent); }
+.sec-head p { color: var(--muted); max-width: 72ch; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; min-width: 0; }
+.grid2 { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.grid3 { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+ul.clean { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+ul.clean li { color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
+ul.clean li b { color: var(--fg); font-weight: 600; }
+code, .mono { font-family: var(--mono); font-size: .88em; overflow-wrap: anywhere; }
+.tablebox { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+.tablebox table { min-width: 760px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; letter-spacing: .04em; color: var(--muted); font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td code { font-size: 12px; }
+td.num, .num { font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+.sev { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 6px; padding: 0 6px; white-space: nowrap; }
+.sev.h { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.sev.m { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.sev.l { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+pre.code { margin: 0; background: var(--code); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; overflow-x: auto; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; }
+.callout { border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 12px 12px 0; padding: 12px 16px; }
+.callout p + p { margin-top: 6px; }
+.pill-tag { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+
+/* ---------- bench controls ---------- */
+.bench { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1000px) { .bench { grid-template-columns: minmax(0, 1fr) 280px; align-items: start; } }
+.controls { display: grid; gap: 14px; }
+.ctl { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 6px; }
+.ctl legend, .ctl > .lab { font-size: 12px; letter-spacing: .05em; color: var(--muted); padding: 0; font-weight: 600; }
+.seg { display: flex; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 3px; gap: 2px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { flex: 1 1 auto; text-align: center; padding: 5px 10px; border-radius: 9px; cursor: pointer; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.seg label:hover { color: var(--fg); }
+.seg input:checked + label { background: var(--accent-soft); color: var(--fg); font-weight: 600; }
+.seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btn-page { font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; }
+.btn-page:hover { border-color: var(--accent); }
+.btn-page:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.tint-row { display: flex; align-items: center; gap: 10px; }
+.tint-row input[type=color] { width: 40px; height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 2px; background: var(--panel); }
+.tint-row input[type=range] { flex: 1; min-width: 0; accent-color: var(--accent); }
+.hint { font-size: 12.5px; color: var(--muted); }
+
+/* =====================================================================
+   THE DESKTOP SCENE — 1000 × 600 design px, scaled to fit.
+   Everything inside imitates what WPF can draw (no backdrop blur unless the
+   experimental switch is on).
+   ===================================================================== */
+.scene-box { position: relative; width: 100%; max-width: 100%; aspect-ratio: 1000 / 600; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); }
+.scene { position: absolute; left: 0; top: 0; width: 1000px; height: 600px; transform-origin: 0 0; overflow: hidden;
+  font-family: var(--wpf); -webkit-font-smoothing: antialiased; --tm: 1;
+  /* preset tokens (Midnight by default; JS rewrites them) */
+  --tint-rgb: 16 15 22; --tint-a: .74; --amul: 1; --ink: #fff; --ink2: rgb(255 255 255 / .68); --ink3: rgb(255 255 255 / .44);
+  --lyric: #c7beff; --glow: .14; --sheen: .10; --shade: .18; --idark: .30; --l35: .22; --rim: .45;
+  --sh1: rgb(0 0 0 / .32); --sh2: rgb(0 0 0 / .14); --lens: rgb(255 255 255 / .14); --ctrl: rgb(255 255 255 / .08); --ctrl-h: rgb(255 255 255 / .13);
+  --well: rgb(255 255 255 / .06); --sep: rgb(255 255 255 / .10); --tsh: none; --dot: #8b7cff;
+  --pri-a: #8b7cff; --pri-b: #d884c0; --bad-a: #d74f74; --bad-b: #e0466f; --okc: #6fd3a5; --badc: #ff8fae;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .2 -.03'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.scene[data-wall="light"] { background:
+  radial-gradient(40% 55% at 22% 30%, #b9c9ff 0, transparent 70%),
+  radial-gradient(40% 60% at 78% 70%, #e2c6ff 0, transparent 70%),
+  radial-gradient(35% 45% at 70% 18%, #c8f0ff 0, transparent 70%),
+  linear-gradient(160deg, #e9eefb, #f3ecfb); }
+.scene[data-wall="dark"] { background:
+  radial-gradient(40% 55% at 25% 35%, #3b2f7a 0, transparent 70%),
+  radial-gradient(40% 60% at 80% 72%, #5a2756 0, transparent 70%),
+  radial-gradient(30% 40% at 70% 15%, #173a63 0, transparent 70%),
+  linear-gradient(160deg, #0d0d18, #170f1d); }
+.scene[data-wall="busy"] { background: linear-gradient(160deg, #dfe6f2, #ece5f3); }
+.fakewin { position: absolute; inset: 0 0 0 0; display: none; background: #fbfbfd; color: #2b2f3a; font: 13px/20px var(--mono); padding: 10px 24px; white-space: pre; overflow: hidden; }
+.fakewin .kw { color: #8a3ff0; } .fakewin .st { color: #1b7f4b; } .fakewin .cm { color: #8b94a7; }
+.scene[data-wall="busy"] .fakewin { display: block; }
+.taskbar { position: absolute; left: 0; right: 0; bottom: 0; height: 40px; background: rgb(240 240 246 / .78); border-top: 1px solid rgb(0 0 0 / .06); display: flex; align-items: center; justify-content: center; gap: 10px; }
+.scene[data-wall="dark"] .taskbar { background: rgb(28 26 36 / .82); border-top-color: rgb(255 255 255 / .06); }
+.taskbar i { width: 22px; height: 22px; border-radius: 6px; background: rgb(120 110 150 / .35); }
+
+/* ---------- the glass material (maps 1:1 to WPF layers, see the Liquid Glass section) ---------- */
+.mg { position: relative; isolation: isolate; color: var(--ink); text-shadow: var(--tsh);
+  background:
+    var(--grain),
+    linear-gradient(180deg, rgb(255 255 255 / var(--sheen)) 0%, rgb(255 255 255 / 0) 46%, rgb(0 0 0 / var(--shade)) 100%),
+    rgb(var(--tint-rgb) / calc(var(--tint-a) * var(--amul)));
+  --s: .6; --band: 8px; }
+.mg::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1;
+  box-shadow:
+    inset 0 0 var(--band) calc(var(--band) * .18) rgb(255 255 255 / var(--glow)),
+    inset calc(-1.7px * var(--s)) calc(-3.3px * var(--s)) calc(30px * var(--s)) 0 rgb(0 0 0 / var(--idark)),
+    inset calc(-1px * var(--s)) calc(-2px * var(--s)) calc(4px * var(--s)) 0 rgb(255 255 255 / var(--l35)),
+    inset calc(1px * var(--s)) calc(2px * var(--s)) calc(4px * var(--s)) 0 rgb(255 255 255 / var(--l35)); }
+.mg::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1; padding: 1.2px; opacity: var(--rim);
+  background:
+    radial-gradient(70% 130% at 6% 0%, rgb(255 255 255 / .95), rgb(255 255 255 / 0) 60%),
+    radial-gradient(70% 130% at 96% 100%, rgb(255 255 255 / .7), rgb(255 255 255 / 0) 60%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
+.scene.realblur .mg { --amul: .55; -webkit-backdrop-filter: blur(var(--rb, 6px)) saturate(1.5); backdrop-filter: blur(var(--rb, 6px)) saturate(1.5); }
+.scene.realblur .mg.clear-fix { --amul: 1; }
+/* edge dispersion (Figma 边缘散射), only on active moments */
+.disp { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1; padding: 2.5px; opacity: 0;
+  background:
+    radial-gradient(60% 140% at 0% 50%, rgb(255 120 190 / .9), transparent 70%),
+    radial-gradient(60% 140% at 100% 40%, rgb(160 130 255 / .9), transparent 70%),
+    radial-gradient(50% 120% at 60% 0%, rgb(255 190 150 / .8), transparent 70%);
+  filter: blur(1.4px); transition: opacity calc(400ms * var(--tm)) ease;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
+.island.flash .disp, .island[data-state="remind"] .disp { opacity: .55; }
+
+/* ---------- island ---------- */
+.island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); overflow: hidden; cursor: pointer;
+  width: 210px; height: 42px; border-radius: 21px;
+  box-shadow: 0 4px 14px var(--sh1), 0 10px 30px var(--sh2);
+  --spring: cubic-bezier(.2, .9, .25, 1.04);
+  transition: width calc(var(--d, 340ms) * var(--tm)) var(--ease, var(--spring)),
+              height calc(var(--d, 340ms) * var(--tm)) var(--ease, var(--spring)),
+              border-radius calc(var(--d, 340ms) * var(--tm)) var(--ease, var(--spring)),
+              box-shadow calc(var(--d, 340ms) * var(--tm)) var(--ease, var(--spring)); }
+.island[data-dir="down"] { --ease: cubic-bezier(.4, 0, .2, 1); --d: 260ms; }
+.island[data-state="compactA"] { width: 32px; height: 32px; border-radius: 16px; --band: 6px; }
+.island[data-state="compactB"] { width: 104px; height: 30px; border-radius: 15px; --band: 6px; }
+.island[data-state="normal"] { width: 210px; height: 42px; border-radius: 21px; }
+.island[data-state="expanded"] { width: 430px; height: 352px; border-radius: 26px; cursor: default; --band: 22px; --s: 1.2;
+  box-shadow: 0 10px 28px var(--sh1), 0 24px 60px var(--sh2); }
+.island[data-state="remind"] { width: 380px; height: 136px; border-radius: 26px; cursor: default; --band: 18px; --s: 1;
+  box-shadow: 0 10px 28px var(--sh1), 0 24px 60px var(--sh2); }
+.island:focus-visible { outline: 2px solid var(--dot); outline-offset: 3px; }
+/* the breathing light: v0.6.1 timing kept (1.7 s, opacity .42→1, scale .92→1.18, sine in-out) */
+.dot { position: absolute; z-index: 3; width: 9px; height: 9px; border-radius: 50%; background: var(--dot); top: 16.5px; left: 15px; pointer-events: none;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--dot) 70%, transparent);
+  animation: breathe var(--breath, 1.7s) cubic-bezier(.37, 0, .63, 1) infinite alternate;
+  transition: left calc(var(--d, 340ms) * var(--tm)) var(--ease, var(--spring)), top calc(var(--d, 340ms) * var(--tm)) var(--ease, var(--spring)); }
+@keyframes breathe { from { opacity: .42; transform: scale(.92); } to { opacity: 1; transform: scale(1.18); } }
+.island[data-state="compactA"] .dot { left: 11.5px; top: 11.5px; }
+.island[data-state="compactB"] .dot { left: 11px; top: 10.5px; }
+.island[data-state="expanded"] .dot { left: 18px; top: 19.5px; }
+.island[data-state="remind"] .dot { left: 18px; top: 19.5px; }
+.island[data-state="greet"] { width: 400px; height: 72px; border-radius: 24px; cursor: default; --band: 14px; --s: .9;
+  box-shadow: 0 10px 28px var(--sh1), 0 24px 60px var(--sh2); }
+.island[data-state="greet"] .dot { left: 18px; top: 31.5px; }
+/* avatar (optional) — the breathing light becomes a ring or a badge on it, same colour and timing */
+.av { position: absolute; z-index: 3; left: 8px; top: 8px; width: 26px; height: 26px; border-radius: 50%; pointer-events: none; opacity: 0;
+  background: var(--av-img) center / cover no-repeat, #f6ecf4;
+  transition: opacity calc(200ms * var(--tm)) ease, left calc(var(--d, 340ms) * var(--tm)) var(--ease, var(--spring)), top calc(var(--d, 340ms) * var(--tm)) var(--ease, var(--spring)),
+    width calc(var(--d, 340ms) * var(--tm)) var(--ease, var(--spring)), height calc(var(--d, 340ms) * var(--tm)) var(--ease, var(--spring)); }
+.av::before { content: ""; position: absolute; inset: -3px; border-radius: 50%; box-shadow: 0 0 0 2px var(--dot), 0 0 10px color-mix(in srgb, var(--dot) 60%, transparent);
+  animation: ringb var(--breath, 1.7s) cubic-bezier(.37, 0, .63, 1) infinite alternate; }
+@keyframes ringb { from { opacity: .42; transform: scale(1); } to { opacity: 1; transform: scale(1.08); } }
+.av .bd { position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--dot); display: none;
+  box-shadow: 0 0 0 2px rgb(var(--tint-rgb)), 0 0 8px color-mix(in srgb, var(--dot) 70%, transparent);
+  animation: breathe var(--breath, 1.7s) cubic-bezier(.37, 0, .63, 1) infinite alternate; }
+.scene[data-avs="badge"] .av::before { display: none; }
+.scene[data-avs="badge"] .av .bd { display: block; }
+.scene.has-av .av { opacity: 1; }
+.scene.has-av .dot { opacity: 0 !important; animation: none; }
+.island[data-state="compactA"] .av { left: 4px; top: 4px; width: 24px; height: 24px; }
+.island[data-state="compactB"] .av { left: 5px; top: 5px; width: 20px; height: 20px; }
+.island[data-state="expanded"] .av { left: 15px; top: 15px; width: 24px; height: 24px; }
+.island[data-state="remind"] .av { left: 16px; top: 13px; width: 34px; height: 34px; }
+.island[data-state="greet"] .av { left: 16px; top: 16px; width: 40px; height: 40px; }
+.scene.has-av .lay-normal { padding-left: 42px; }
+.scene.has-av .lay-normal > .ico { display: none; }
+.scene.has-av .lay-cb { padding-left: 32px; }
+.scene.has-av .exp-head { padding-left: 32px; }
+.scene.has-av .remind-top .bell { display: none; }
+.scene.has-av .remind-top { padding-left: 50px; }
+.scene.has-av .remind-meta { padding-left: 50px; }
+.lay-greet { width: 400px; height: 72px; padding: 0 18px 0 38px; display: grid; align-content: center; gap: 2px; }
+.scene.has-av .lay-greet { padding-left: 68px; }
+.island[data-state="greet"] .lay-greet { opacity: 1; pointer-events: auto; transition: opacity calc(180ms * var(--tm)) ease calc(120ms * var(--tm)); }
+.lay-greet b { font-size: 14px; line-height: 20px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lay-greet span { font-size: 11.5px; line-height: 16px; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.lay-greet .gprog { position: absolute; left: 24px; right: 24px; bottom: 7px; height: 2px; border-radius: 1px; background: var(--sep); overflow: hidden; }
+.lay-greet .gprog i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--pri-a), var(--pri-b)); transform-origin: left; }
+.lay-greet .gprog i.run { animation: gdrain linear forwards; }
+@keyframes gdrain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.lay { position: absolute; top: 0; left: 50%; transform: translateX(-50%); opacity: 0; pointer-events: none;
+  transition: opacity calc(100ms * var(--tm)) ease; }
+.island[data-state="normal"] .lay-normal, .island[data-state="compactB"] .lay-cb, .island[data-state="expanded"] .lay-exp, .island[data-state="remind"] .lay-remind {
+  opacity: 1; pointer-events: auto; transition: opacity calc(180ms * var(--tm)) ease calc(120ms * var(--tm)); }
+.lay-normal { width: 210px; height: 42px; display: flex; align-items: center; gap: 7px; padding: 0 16px 0 33px; }
+.lay-normal .txt { font-size: 13px; line-height: 18px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; transition: opacity calc(160ms * var(--tm)) ease; }
+.lay-normal .txt.swap { opacity: 0; }
+.lay-cb { width: 104px; height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 12px 0 27px; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+.eq i { width: 2px; border-radius: 1px; background: var(--ink2); animation: eq 900ms ease-in-out infinite alternate; }
+.eq i:nth-child(1) { height: 5px; } .eq i:nth-child(2) { height: 11px; animation-delay: -300ms; } .eq i:nth-child(3) { height: 7px; animation-delay: -600ms; }
+@keyframes eq { from { transform: scaleY(.45); } to { transform: scaleY(1); } }
+.eq i { transform-origin: bottom; }
+.lay-exp { width: 430px; height: 352px; padding: 12px 14px 14px; display: grid; grid-template-rows: 30px 34px minmax(0, 1fr); gap: 10px; }
+.lay-exp > * { opacity: 0; transform: translateY(4px); transition: opacity calc(160ms * var(--tm)) ease, transform calc(160ms * var(--tm)) ease; }
+.island[data-state="expanded"] .lay-exp > * { opacity: 1; transform: none; transition: opacity calc(180ms * var(--tm)) ease, transform calc(220ms * var(--tm)) cubic-bezier(.2, 0, 0, 1); }
+.island[data-state="expanded"] .lay-exp > :nth-child(1) { transition-delay: calc(120ms * var(--tm)); }
+.island[data-state="expanded"] .lay-exp > :nth-child(2) { transition-delay: calc(140ms * var(--tm)); }
+.island[data-state="expanded"] .lay-exp > :nth-child(3) { transition-delay: calc(160ms * var(--tm)); }
+.exp-head { display: flex; align-items: center; gap: 4px; padding-left: 22px; }
+.exp-head .ttl { font-size: 13px; font-weight: 600; color: var(--ink2); margin-right: auto; }
+.lay-remind { width: 380px; height: 136px; padding: 13px 16px 14px 16px; display: grid; grid-template-rows: auto auto 1fr; gap: 4px; }
+
+/* ---------- mock controls (inside the scene) ---------- */
+.ico { display: inline-block; flex: none; vertical-align: middle; }
+.ico svg { display: block; width: 100%; height: 100%; }
+.ib { width: 28px; height: 28px; border-radius: 14px; border: 0; background: transparent; color: var(--ink2); display: inline-grid; place-items: center; cursor: pointer; padding: 0; transition: background calc(120ms * var(--tm)) ease, color calc(120ms * var(--tm)) ease; }
+.ib:hover { background: var(--ctrl-h); color: var(--ink); }
+.ib:focus-visible, .mbtn:focus-visible, .tab:focus-visible, .chk:focus-visible, .sw:focus-visible, .dd:focus-visible, .inp:focus-visible { outline: 2px solid var(--dot); outline-offset: 1px; }
+.ib .ico { width: 18px; height: 18px; }
+.tabs { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); background: var(--well); border-radius: 17px; padding: 2px; box-shadow: inset 0 1px 2px rgb(0 0 0 / .12); }
+.tab { position: relative; z-index: 1; border: 0; background: transparent; color: var(--ink2); font: inherit; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; border-radius: 15px; height: 30px; padding: 0; transition: color calc(160ms * var(--tm)) ease; }
+.tab .ico { width: 16px; height: 16px; }
+.tab[aria-selected="true"] { color: var(--ink); }
+.lens { position: absolute; z-index: 0; top: -1px; height: 32px; border-radius: 16px; background: var(--lens);
+  box-shadow: inset 0 -6px 7px 0 rgb(255 255 255 / .22), inset 0 1px 0 rgb(255 255 255 / .45), 0 2px 8px rgb(0 0 0 / .18), 0 0 0 1px rgb(200 185 255 / .28);
+  transition: transform calc(240ms * var(--tm)) cubic-bezier(.2, .9, .25, 1.06), width calc(240ms * var(--tm)) ease; }
+.panel { min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--sep) transparent; }
+.panel[hidden] { display: none !important; }
+.song { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.song b { font-size: 14px; line-height: 20px; font-weight: 600; white-space: nowrap; }
+.song span { font-size: 12px; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.transport { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 6px 0 4px; }
+.transport .ib .ico { width: 18px; height: 18px; }
+.lensbtn { width: 40px; height: 40px; border-radius: 20px; border: 0; color: var(--ink); background: var(--lens); display: grid; place-items: center; cursor: pointer; padding: 0;
+  box-shadow: inset 0 -6px 8px 0 rgb(255 255 255 / .22), inset 0 1px 0 rgb(255 255 255 / .5), 0 3px 10px rgb(0 0 0 / .18), 0 0 0 1px rgb(200 185 255 / .3); transition: transform calc(120ms * var(--tm)) ease; }
+.lensbtn:active { transform: scale(.96); }
+.lensbtn .ico { width: 20px; height: 20px; }
+.vol { display: grid; grid-template-columns: 20px 1fr 36px; align-items: center; gap: 8px; font-size: 11px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.vol .ico { width: 16px; height: 16px; }
+.slider { position: relative; height: 16px; display: flex; align-items: center; cursor: pointer; }
+.slider .tr { position: relative; width: 100%; height: 4px; border-radius: 2px; background: var(--sep); }
+.slider .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: linear-gradient(90deg, var(--pri-a), var(--pri-b)); }
+.slider .th { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .3), inset 0 -2px 3px rgb(140 120 200 / .25); }
+.lyrbox { margin-top: 8px; background: var(--well); border-radius: 14px; padding: 8px 12px; text-align: center; display: grid; gap: 2px; box-shadow: inset 0 1px 2px rgb(0 0 0 / .10); }
+.lyrbox .p, .lyrbox .n { font-size: 11px; line-height: 16px; color: var(--ink3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lyrbox .c { font-size: 15px; line-height: 22px; font-weight: 600; color: var(--lyric); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.foot { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; color: var(--ink3); font-variant-numeric: tabular-nums; }
+.foot .sp { margin-right: auto; }
+.mbtn { font: inherit; font-size: 12px; font-weight: 600; border: 0; border-radius: 999px; height: 28px; padding: 0 12px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; color: var(--ink); background: var(--ctrl);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .14), inset 0 0 0 1px var(--sep); transition: background calc(120ms * var(--tm)) ease, transform calc(120ms * var(--tm)) ease; }
+.mbtn:hover { background: var(--ctrl-h); }
+.mbtn:active { transform: scale(.97); }
+.mbtn .ico { width: 15px; height: 15px; }
+.mbtn.pri { color: #fff; background: linear-gradient(135deg, var(--pri-a), var(--pri-b)); box-shadow: inset 0 1px 0 rgb(255 255 255 / .35), 0 2px 8px rgb(120 80 200 / .30); text-shadow: none; }
+.mbtn.bad { color: #fff; background: linear-gradient(135deg, var(--bad-a), var(--bad-b)); box-shadow: inset 0 1px 0 rgb(255 255 255 / .3); text-shadow: none; }
+.mbtn.ghost { background: transparent; box-shadow: none; color: var(--ink2); }
+.mbtn.ghost:hover { background: var(--ctrl); color: var(--ink); }
+.mbtn[disabled] { opacity: .4; cursor: default; }
+.inp { font: inherit; font-size: 12.5px; height: 30px; border-radius: 10px; border: 0; padding: 0 10px; color: var(--ink); background: var(--ctrl); box-shadow: inset 0 0 0 1px var(--sep); min-width: 0; outline: none; }
+.inp::placeholder { color: var(--ink3); }
+.inp:focus { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dot) 70%, transparent), 0 0 0 3px color-mix(in srgb, var(--dot) 25%, transparent); }
+.addrow { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; margin-bottom: 6px; }
+.tlist { display: grid; }
+.trow { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto 24px; align-items: center; gap: 8px; height: 36px; border-bottom: 1px solid var(--sep); font-size: 13px; }
+.trow:last-child { border-bottom: 0; }
+.trow .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color calc(160ms * var(--tm)) ease; }
+.trow.done .t { color: var(--ink3); text-decoration: line-through; text-decoration-thickness: 1px; }
+.trow .ib { width: 24px; height: 24px; opacity: 0; }
+.trow:hover .ib, .trow:focus-within .ib { opacity: 1; }
+.trow .ib .ico { width: 15px; height: 15px; }
+.chk { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--ink3); background: transparent; padding: 0; display: grid; place-items: center; cursor: pointer; color: #fff; transition: background calc(160ms * var(--tm)) ease, border-color calc(160ms * var(--tm)) ease; }
+.chk svg { width: 12px; height: 12px; stroke-dasharray: 16; stroke-dashoffset: 16; transition: stroke-dashoffset calc(220ms * var(--tm)) ease calc(40ms * var(--tm)); }
+.trow.done .chk { background: linear-gradient(135deg, var(--pri-a), var(--pri-b)); border-color: transparent; }
+.trow.done .chk svg { stroke-dashoffset: 0; }
+.tmeta { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--ink2); background: var(--well); border-radius: 6px; padding: 1px 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tmeta .ico { width: 12px; height: 12px; }
+.tmeta.over { color: var(--badc); }
+.tmeta.soon { color: var(--warnc, #f0b878); }
+.ptitle { font-family: var(--wpf-display); font-size: 17px; line-height: 24px; font-weight: 600; margin-bottom: 8px; }
+.pdesc { font-size: 12px; color: var(--ink2); margin-bottom: 10px; }
+.prog { height: 4px; border-radius: 2px; background: var(--sep); overflow: hidden; margin-top: 6px; }
+.prog i { display: block; height: 100%; width: 62%; border-radius: inherit; background: linear-gradient(90deg, var(--pri-a), var(--pri-b)); }
+.srow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 38px; border-bottom: 1px solid var(--sep); font-size: 13px; }
+.srow:last-child { border-bottom: 0; }
+.srow small { display: block; font-size: 11px; color: var(--ink3); line-height: 1.3; }
+.srow .pair { display: flex; gap: 6px; align-items: center; }
+.sw { position: relative; width: 36px; height: 20px; border-radius: 10px; border: 0; padding: 0; cursor: pointer; background: var(--sep); box-shadow: inset 0 1px 2px rgb(0 0 0 / .2); transition: background calc(180ms * var(--tm)) ease; }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .3), inset 0 -2px 3px rgb(140 120 200 / .25); transition: transform calc(220ms * var(--tm)) cubic-bezier(.2, .9, .25, 1.15); }
+.sw[aria-checked="true"] { background: linear-gradient(135deg, var(--pri-a), var(--pri-b)); }
+.sw[aria-checked="true"]::after { transform: translateX(16px); }
+.dd { font: inherit; font-size: 12px; height: 28px; min-width: 104px; border-radius: 10px; border: 0; padding: 0 8px 0 10px; display: inline-flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; color: var(--ink); background: var(--ctrl); box-shadow: inset 0 1px 0 rgb(255 255 255 / .12), inset 0 0 0 1px var(--sep); }
+.dd:hover { background: var(--ctrl-h); }
+.dd .ico { width: 14px; height: 14px; color: var(--ink2); transition: transform calc(200ms * var(--tm)) ease; }
+.dd[aria-expanded="true"] .ico { transform: rotate(180deg); }
+.swatch { width: 28px; height: 20px; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--sep); }
+.remind-top { display: flex; align-items: center; gap: 10px; padding-left: 22px; }
+.remind-top .bell { width: 30px; height: 30px; border-radius: 15px; display: grid; place-items: center; background: var(--lens); box-shadow: inset 0 1px 0 rgb(255 255 255 / .45), 0 0 0 1px rgb(200 185 255 / .3); }
+.remind-top .bell .ico { width: 16px; height: 16px; }
+.remind-top b { font-size: 15px; font-weight: 600; }
+.remind-meta { padding-left: 62px; font-size: 12px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.remind-act { display: flex; gap: 6px; align-items: end; justify-content: flex-end; }
+
+/* popup menus: separate windows in WPF, so they sit above the island in the scene */
+.pop { position: absolute; z-index: 30; min-width: 180px; padding: 6px; border-radius: 14px; font-size: 12.5px;
+  box-shadow: 0 10px 28px var(--sh1), 0 24px 60px var(--sh2); --band: 12px; --s: .8;
+  opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity calc(160ms * var(--tm)) ease, transform calc(200ms * var(--tm)) cubic-bezier(.2, 0, 0, 1); }
+.scene .pop, .scene.realblur .pop { --amul: 1.25; }
+.scene .pop.clear-fix, .scene.realblur .pop.clear-fix { --tint-rgb: 22 20 30; --tint-a: .74; --amul: 1.2; }
+.pop.open { opacity: 1; transform: none; pointer-events: auto; }
+.pop .grp { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; color: var(--ink3); padding: 6px 8px 2px; }
+.pop .it { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: transparent; color: var(--ink); font: inherit; text-align: left; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.pop .it:hover, .pop .it:focus-visible { background: var(--ctrl-h); outline: none; }
+.pop .it .ck { width: 14px; height: 14px; color: var(--dot); opacity: 0; }
+.pop .it[aria-checked="true"] .ck { opacity: 1; }
+.pop .it .r { margin-left: auto; color: var(--ink3); font-size: 11px; }
+.pop .sep { height: 1px; background: var(--sep); margin: 4px 6px; }
+.pop .search { display: flex; align-items: center; gap: 6px; padding: 0 8px; height: 30px; border-radius: 9px; background: var(--ctrl); box-shadow: inset 0 0 0 1px var(--sep); margin-bottom: 4px; color: var(--ink3); }
+.pop .search .ico { width: 14px; height: 14px; }
+.pop .mini-seg { display: flex; gap: 2px; background: var(--well); border-radius: 9px; padding: 2px; margin: 2px 6px 4px; }
+.pop .mini-seg button { flex: 1; border: 0; background: transparent; color: var(--ink2); font: inherit; font-size: 11.5px; padding: 3px 0; border-radius: 7px; cursor: pointer; }
+.pop .mini-seg button[aria-pressed="true"] { background: var(--lens); color: var(--ink); box-shadow: inset 0 1px 0 rgb(255 255 255 / .4); }
+.pop .sw { width: 30px; height: 17px; margin-left: auto; }
+.pop .sw::after { width: 13px; height: 13px; }
+.pop .sw[aria-checked="true"]::after { transform: translateX(13px); }
+
+/* ---------- floating lyrics ---------- */
+.fly { position: absolute; left: 50%; bottom: 66px; transform: translateX(-50%); width: 560px; height: 44px; border-radius: 22px; --band: 9px;
+  box-shadow: 0 4px 14px var(--sh1), 0 10px 30px var(--sh2);
+  display: grid; grid-template-columns: 1fr 96px; align-items: center; padding-left: 20px;
+  transition: height calc(240ms * var(--tm)) cubic-bezier(.2, .9, .25, 1.04), border-radius calc(240ms * var(--tm)) ease, opacity calc(200ms * var(--tm)) ease; }
+.fly.cover-on { grid-template-columns: auto 1fr 96px; padding-left: 8px; }
+.fly .cov { display: none; width: 28px; height: 28px; border-radius: 8px; margin-right: 10px; background: linear-gradient(140deg, #f3c7a4, #8fb6e8 55%, #3d5ea8); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .2), 0 2px 6px rgb(0 0 0 / .25);
+  transition: width calc(240ms * var(--tm)) ease, height calc(240ms * var(--tm)) ease, border-radius calc(240ms * var(--tm)) ease; }
+.fly.cover-on .cov { display: block; }
+.fly.double .cov { width: 56px; height: 56px; border-radius: 12px; margin-right: 12px; }
+.fly.cover-on.double { padding-left: 10px; }
+.fly.double { height: 76px; border-radius: 24px; --band: 15px; --s: .95; }
+.fly.off { opacity: 0; pointer-events: none; }
+.fly .lines { position: relative; height: 100%; display: grid; align-content: center; justify-items: center; overflow: hidden; text-align: center; }
+.fly.left .lines { justify-items: start; text-align: left; }
+.fly .cur { font-family: var(--wpf-display); font-size: var(--fs1, 18px); line-height: 1.42; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  transition: opacity calc(160ms * var(--tm)) ease, transform calc(220ms * var(--tm)) cubic-bezier(.2, 0, 0, 1); }
+.fly.double .cur { font-size: var(--fs2, 20px); }
+.fly .nxt { font-size: 14px; line-height: 20px; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; height: 0; opacity: 0;
+  transition: opacity calc(160ms * var(--tm)) ease, transform calc(220ms * var(--tm)) cubic-bezier(.2, 0, 0, 1); }
+.fly.double .nxt { height: 20px; opacity: 1; margin-top: 2px; }
+.fly .out { opacity: 0; transform: translateY(-6px); }
+.fly .in0 { opacity: 0; transform: translateY(6px); transition: none; }
+.fly .slot { position: relative; height: 100%; display: grid; align-items: center; justify-items: end; padding-right: 14px; }
+.fly .clock { font-size: 12px; font-weight: 600; color: var(--ink2); font-variant-numeric: tabular-nums; transition: opacity calc(120ms * var(--tm)) ease; }
+.fly.noclock .clock { visibility: hidden; }
+.fly .ctrls { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: flex; gap: 2px; opacity: 0; pointer-events: none; transition: opacity calc(120ms * var(--tm)) ease; }
+.fly .ctrls .ib { width: 22px; height: 22px; }
+.fly .ctrls .ib .ico { width: 15px; height: 15px; }
+.fly:hover .clock, .fly.hover .clock, .fly:focus-within .clock { opacity: 0; }
+.fly:hover .ctrls, .fly.hover .ctrls, .fly:focus-within .ctrls { opacity: 1; pointer-events: auto; }
+
+/* ---------- static specimens outside the scene ---------- */
+.spec-stage { position: relative; border-radius: 14px; overflow: hidden; padding: 22px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: center; min-height: 120px;
+  background: radial-gradient(45% 70% at 20% 30%, #3b2f7a 0, transparent 70%), radial-gradient(45% 70% at 80% 70%, #5a2756 0, transparent 70%), linear-gradient(160deg, #0d0d18, #170f1d);
+  font-family: var(--wpf); color: #fff; }
+.spec-stage.light { background: radial-gradient(45% 70% at 20% 30%, #b9c9ff 0, transparent 70%), radial-gradient(45% 70% at 80% 70%, #e2c6ff 0, transparent 70%), linear-gradient(160deg, #e9eefb, #f3ecfb); }
+.preset-pill { width: 168px; height: 42px; border-radius: 21px; display: flex; align-items: center; gap: 8px; padding: 0 14px; font-size: 13px; font-weight: 600;
+  box-shadow: 0 4px 14px var(--sh1), 0 10px 30px var(--sh2); }
+.preset-pill .pd { width: 9px; height: 9px; border-radius: 50%; background: var(--dot); box-shadow: 0 0 8px var(--dot); flex: none; }
+.preset-pill small { margin-left: auto; font-size: 11px; color: var(--ink2); font-weight: 500; }
+.icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.icon-cell { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 8px 10px; display: grid; justify-items: center; gap: 6px; text-align: center; min-width: 0; }
+.icon-cell .ico { width: 24px; height: 24px; color: var(--fg); }
+.icon-cell b { font-size: 12.5px; font-weight: 600; }
+.icon-cell code { font-size: 10.5px; color: var(--muted); word-break: break-all; }
+.core-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.core-cell { border-radius: 14px; border: 1px solid var(--line); background: var(--panel); padding: 16px; display: grid; gap: 10px; min-width: 0; }
+.core-cell .row { display: flex; align-items: flex-end; gap: 14px; color: var(--fg); }
+.core-cell .row .tile { width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; color: #fff;
+  background: radial-gradient(70% 90% at 30% 20%, #3c3270 0, transparent 70%), linear-gradient(160deg, #15131d, #231a2c);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .18), inset 0 0 0 1px rgb(255 255 255 / .08); }
+.core-cell .row .tile .ico { width: 36px; height: 36px; }
+.core-cell b { font-size: 14px; }
+.core-cell p { font-size: 13px; color: var(--muted); }
+.sizes { display: flex; align-items: flex-end; gap: 12px; }
+.sizes .ico { color: var(--fg); }
+.compare { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.cmp-stage { position: relative; height: 150px; border-radius: 14px; overflow: hidden;
+  background: radial-gradient(45% 70% at 25% 30%, #b9c9ff 0, transparent 70%), radial-gradient(45% 70% at 80% 70%, #e2c6ff 0, transparent 70%), linear-gradient(160deg, #e9eefb, #f3ecfb); }
+.cmp-stage .demo { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); overflow: hidden; box-shadow: 0 4px 14px var(--sh1), 0 10px 30px var(--sh2); }
+.cmp-stage .demo .d { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: var(--dot); box-shadow: 0 0 8px var(--dot); animation: breathe 1.7s cubic-bezier(.37, 0, .63, 1) infinite alternate; }
+.demoA { animation: morphA 5s cubic-bezier(.2, .9, .25, 1.04) infinite; }
+.demoA .d { left: calc(50% - 4.5px); top: calc(50% - 4.5px); }
+@keyframes morphA { 0%, 38% { width: 32px; height: 32px; border-radius: 16px; } 50%, 88% { width: 210px; height: 42px; border-radius: 21px; } 100% { width: 32px; height: 32px; border-radius: 16px; } }
+.demoB { animation: morphB 5s cubic-bezier(.2, .9, .25, 1.04) infinite; }
+.demoB .d { left: 11px; top: calc(50% - 4.5px); }
+@keyframes morphB { 0%, 38% { width: 104px; height: 30px; border-radius: 15px; } 50%, 88% { width: 210px; height: 42px; border-radius: 21px; } 100% { width: 104px; height: 30px; border-radius: 15px; } }
+.cmp-stage .lbl { position: absolute; left: 12px; bottom: 10px; font-size: 12px; color: #4a4258; font-weight: 600; }
+.static-row { display: flex; gap: 18px; align-items: center; justify-content: center; position: absolute; left: 0; right: 0; bottom: 34px; }
+
+/* motion timeline */
+.tl { display: grid; gap: 8px; font-size: 12.5px; }
+.tl-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; align-items: center; }
+.tl-row > span { color: var(--muted); }
+.tl-track { position: relative; height: 18px; border-radius: 4px; background: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 25%); }
+.tl-bar { position: absolute; top: 3px; height: 12px; border-radius: 6px; background: var(--accent); opacity: .85; }
+.tl-bar.alt { background: var(--ok); }
+.tl-bar.warn { background: var(--warn); }
+.tl-axis { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.tl-axis div { display: flex; justify-content: space-between; }
+@media (max-width: 560px) { .tl-row, .tl-axis { grid-template-columns: 96px minmax(0, 1fr); } }
+
+.setwin { display: grid; grid-template-columns: 180px minmax(0, 1fr); width: 100%; max-width: 880px; min-height: 480px; border-radius: 22px; overflow: hidden; text-shadow: none;
+  box-shadow: 0 10px 28px var(--sh1), 0 24px 60px var(--sh2); --band: 22px; --s: 1.2; text-align: left; }
+@media (max-width: 640px) { .setwin { grid-template-columns: minmax(0, 1fr); } .setwin nav { flex-direction: row !important; flex-wrap: wrap; border-right: 0 !important; border-bottom: 1px solid var(--sep); } }
+.setwin nav { display: flex; flex-direction: column; gap: 2px; padding: 16px 10px; border-right: 1px solid var(--sep); }
+.setwin nav .brand { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; padding: 4px 8px 12px; }
+.setwin nav .brand .ico { width: 20px; height: 20px; }
+.setwin nav button { display: flex; align-items: center; gap: 8px; border: 0; background: transparent; color: var(--ink2); font: inherit; font-size: 13px; padding: 7px 10px; border-radius: 10px; cursor: pointer; text-align: left; }
+.setwin nav button .ico { width: 16px; height: 16px; }
+.setwin nav button:hover { background: var(--ctrl); color: var(--ink); }
+.setwin nav button[aria-selected="true"] { background: var(--lens); color: var(--ink); box-shadow: inset 0 1px 0 rgb(255 255 255 / .35), 0 0 0 1px rgb(200 185 255 / .25); }
+.setwin nav button:focus-visible { outline: 2px solid var(--dot); }
+.setwin .pane { padding: 18px 22px 20px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.setwin .pane[hidden] { display: none !important; }
+.setwin .pane h4 { margin: 0; font-family: var(--wpf-display); font-size: 17px; font-weight: 600; }
+.setwin .grpbox { background: var(--well); border-radius: 14px; padding: 4px 14px; box-shadow: inset 0 1px 2px rgb(0 0 0 / .10); }
+.setwin .srow { min-height: 46px; }
+.av-big { width: 64px; height: 64px; border-radius: 50%; background: var(--av-img) center / var(--zoom, 100%) no-repeat, #f6ecf4; box-shadow: 0 0 0 2px var(--dot), 0 0 12px color-mix(in srgb, var(--dot) 50%, transparent); flex: none; }
+.ph-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ph-chips button { font-family: var(--mono); font-size: 11.5px; border: 0; border-radius: 6px; padding: 2px 7px; background: var(--ctrl); color: var(--ink); cursor: pointer; box-shadow: inset 0 0 0 1px var(--sep); }
+.ph-chips button:hover { background: var(--ctrl-h); }
+.cg-list { display: grid; }
+.cg-row { display: grid; grid-template-columns: minmax(0, 1fr) 24px; align-items: center; gap: 8px; min-height: 34px; border-bottom: 1px solid var(--sep); font-size: 13px; }
+.cg-row:last-child { border-bottom: 0; }
+.cg-row code { color: var(--lyric); font-size: 12px; }
+.gprev { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; min-width: 0; box-shadow: 0 4px 14px var(--sh1), 0 10px 30px var(--sh2); --band: 12px; }
+.gprev .av-sm { width: 36px; height: 36px; border-radius: 50%; flex: none; background: var(--av-img) center / cover no-repeat, #f6ecf4; box-shadow: 0 0 0 2px var(--dot); }
+.gprev div { display: grid; min-width: 0; }
+.gprev b { font-size: 14px; line-height: 20px; }
+.gprev span { font-size: 11.5px; color: var(--ink2); }
+.pool { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.pool .card h3 { font-size: 14px; margin-bottom: 6px; display: flex; justify-content: space-between; gap: 8px; }
+.pool .card h3 span { font-weight: 500; color: var(--muted); font-size: 12px; }
+.pool .card ul { margin: 0; padding-left: 16px; display: grid; gap: 3px; font-size: 13.5px; }
+.pool .card li { min-width: 0; overflow-wrap: anywhere; }
+.pool mark { background: var(--accent-soft); color: var(--accent); border-radius: 4px; padding: 0 3px; font-family: var(--mono); font-size: 12px; }
+.try-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.try-row label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.try-row input, .try-row select { font: inherit; font-size: 14px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); min-width: 0; }
+.try-row input:focus-visible, .try-row select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+pre.mermaid { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; overflow-x: auto; }
+@media (prefers-reduced-motion: reduce) {
+  .scene *, .scene *::before, .scene *::after, .cmp-stage * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}
+</style>
+
+<div class="wrap">
+  <nav class="toc" aria-label="目录">
+    <a href="#bench">实时预览</a>
+    <a href="#audit">UI 审查</a>
+    <a href="#tokens">Design Tokens</a>
+    <a href="#glass">Liquid Glass</a>
+    <a href="#controls">控件</a>
+    <a href="#icons">图标</a>
+    <a href="#motion">动画</a>
+    <a href="#compact">Compact Mode</a>
+    <a href="#lyrics">Floating Lyrics</a>
+    <a href="#avatar">头像与问候</a>
+    <a href="#settingswin">设置窗口</a>
+    <a href="#features">功能设计</a>
+    <a href="#scope">暂不做</a>
+    <a href="#confirm">待确认</a>
+  </nav>
+
+  <main>
+    <header class="top">
+      <span class="chip-state">方案稿 v2 · 尚未实现</span>
+      <h1>Miya Island v0.7 设计方案</h1>
+      <p class="lede">以 <b>v0.6.1 PositionFix</b> 为唯一基线的 UI / UX 重构方案。玻璃语言沿用 Miya Thor 那套：JoyTaung 的
+        <b>iOS 26 Liquid Glass Simulation</b> Figma 文件解码，再按 Thor 的 <code>GlassPolicy</code> 随尺寸缩放。
+        下面的预览只用 WPF 能画出来的效果；打开“真实模糊”才会用到背景模糊。</p>
+      <p class="lede"><b>v2 更新</b>：合并 GPT 方案里的独立设置窗口、歌词专辑封面、问候卡倒计时细线、橙色时间标签、Light / Medium / Strong 玻璃命名；新增可选头像（可自定义图片）、自定义称呼、扩展的问候文案池和自定义问候。</p>
+      <div class="meta-row">
+        <span>基线：<code>Miyayanyan/MiyaIsland</code> · 分支 <code>claude/serene-lamport-3dd2qr</code> · 提交 <code>66fd417</code></span>
+        <span>玻璃来源：Thor 分支 <code>claude/miya-v2-liquid-glass</code> · <code>GlassPolicy.kt</code> / <code>GlassPalette.kt</code></span>
+      </div>
+    </header>
+
+    <!-- ================= BENCH ================= -->
+    <section id="bench" aria-labelledby="h-bench">
+      <div class="sec-head">
+        <span class="eyebrow">实时预览</span>
+        <h2 id="h-bench">在桌面上看 v0.7</h2>
+        <p>点小岛展开，点顶栏的收起箭头收回，点“缩小”进入 Compact。鼠标移到下方悬浮歌词上会出现控制按钮。慢放 ×4 可以看清每一层的过渡。</p>
+      </div>
+      <div class="bench">
+        <div class="scene-box" id="sceneBox">
+          <div class="scene" id="scene" data-wall="light">
+            <div class="fakewin" id="fakewin" aria-hidden="true"></div>
+            <div class="taskbar" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+
+            <div class="island mg" id="island" data-state="normal" role="group" aria-label="Miya Island 预览" tabindex="0">
+              <i class="disp"></i>
+              <span class="dot"></span>
+              <span class="av" aria-hidden="true"><i class="bd"></i></span>
+              <div class="lay lay-normal"><span class="ico" data-ico="music" style="width:14px;height:14px;color:var(--ink2)"></span><span class="txt" id="normalTxt">故事的小黄花 从出生那年就飘着</span></div>
+              <div class="lay lay-cb"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span>3:12</span></div>
+              <div class="lay lay-exp">
+                <div class="exp-head">
+                  <span class="ttl" id="expTitle">Miya Island</span>
+                  <button class="ib" type="button" id="lockBtn" aria-label="锁定位置" title="锁定位置"><span class="ico" data-ico="unlock"></span></button>
+                  <button class="ib" type="button" id="miniBtn" aria-label="缩小为 Compact" title="缩小为 Compact"><span class="ico" data-ico="minimize"></span></button>
+                  <button class="ib" type="button" id="collapseBtn" aria-label="收起" title="收起"><span class="ico" data-ico="chevronUp"></span></button>
+                </div>
+                <div class="tabs" role="tablist" aria-label="面板">
+                  <span class="lens" id="lens" aria-hidden="true"></span>
+                  <button class="tab" role="tab" aria-selected="true" data-tab="music" type="button"><span class="ico" data-ico="music"></span>音乐</button>
+                  <button class="tab" role="tab" aria-selected="false" data-tab="tasks" type="button"><span class="ico" data-ico="tasks"></span>任务</button>
+                  <button class="tab" role="tab" aria-selected="false" data-tab="dl" type="button"><span class="ico" data-ico="download"></span>下载</button>
+                  <button class="tab" role="tab" aria-selected="false" data-tab="j" type="button"><span class="ico" data-ico="jspace"></span>J-Space</button>
+                  <button class="tab" role="tab" aria-selected="false" data-tab="set" type="button"><span class="ico" data-ico="settings"></span>设置</button>
+                </div>
+                <div class="panels" style="min-height:0;display:grid">
+                  <div class="panel" data-panel="music">
+                    <div class="song"><b>晴天</b><span>周杰伦 · 叶惠美</span></div>
+                    <div class="transport">
+                      <button class="ib" type="button" aria-label="上一首"><span class="ico" data-ico="prev"></span></button>
+                      <button class="lensbtn" type="button" id="playBtn" aria-label="暂停"><span class="ico" data-ico="pause"></span></button>
+                      <button class="ib" type="button" aria-label="下一首"><span class="ico" data-ico="next"></span></button>
+                    </div>
+                    <div class="vol"><span class="ico" data-ico="volume"></span><div class="slider" data-val="64"><div class="tr"><div class="fill"></div><div class="th"></div></div></div><span class="v">64%</span></div>
+                    <div class="lyrbox"><span class="p" id="lyP">刮风这天 我试过握着你手</span><span class="c" id="lyC">故事的小黄花 从出生那年就飘着</span><span class="n" id="lyN">童年的荡秋千 随记忆一直晃到现在</span></div>
+                    <div class="foot"><span class="sp">1:42 / 4:29</span>
+                      <button class="mbtn" type="button" id="flyToggle"><span class="ico" data-ico="lyrics"></span>悬浮歌词</button>
+                      <button class="mbtn" type="button"><span class="ico" data-ico="add"></span>导入 LRC</button></div>
+                  </div>
+                  <div class="panel" data-panel="tasks" hidden>
+                    <div class="addrow">
+                      <input class="inp" id="taskInput" placeholder="添加任务…" aria-label="任务内容">
+                      <button class="dd" type="button" data-pop="popWhen" aria-expanded="false" style="min-width:auto"><span class="ico" data-ico="bell" style="transform:none"></span>今天 21:30</button>
+                      <button class="mbtn pri" type="button" aria-label="添加" style="width:30px;padding:0;justify-content:center"><span class="ico" data-ico="add"></span></button>
+                    </div>
+                    <div class="tlist" id="tlist"></div>
+                  </div>
+                  <div class="panel" data-panel="dl" hidden>
+                    <div class="ptitle">新建下载</div>
+                    <div style="display:grid;gap:8px">
+                      <input class="inp" id="dlInput" placeholder="粘贴 http 或 https 下载链接" aria-label="下载链接">
+                      <button class="mbtn pri" type="button" style="justify-self:start"><span class="ico" data-ico="download"></span>选择保存位置并开始</button>
+                      <div style="background:var(--well);border-radius:14px;padding:10px 12px;margin-top:4px">
+                        <div style="display:flex;justify-content:space-between;font-size:12.5px;gap:10px"><span>miya-wallpaper.zip</span><span style="color:var(--ink2);font-variant-numeric:tabular-nums">62% · 3.4 MB/s</span></div>
+                        <div class="prog"><i></i></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="panel" data-panel="j" hidden>
+                    <div class="ptitle">J-Space</div>
+                    <p class="pdesc">只属于我们的小空间，用默认浏览器打开。</p>
+                    <button class="mbtn pri" type="button"><span class="ico" data-ico="jspace"></span>打开 J-Space</button>
+                  </div>
+                  <div class="panel" data-panel="set" hidden>
+                    <div class="srow"><span>玻璃风格</span><button class="dd" type="button" data-pop="popPreset" aria-expanded="false"><span id="presetLabel">Midnight</span><span class="ico" data-ico="chevronDown"></span></button></div>
+                    <div class="srow"><span>自定义 tint<small>颜色 + 浓度，文字颜色自动跟随</small></span><span class="swatch" id="setSwatch"></span></div>
+                    <div class="srow"><span>真实背景模糊<small>实验功能，开启时不显示外投影</small></span><button class="sw" type="button" role="switch" aria-checked="false" id="swBlur" aria-label="真实背景模糊"></button></div>
+                    <div class="srow"><span>标题字体</span><button class="dd" type="button" data-pop="popFont" aria-expanded="false"><span id="fontLabel">Segoe UI Variable</span><span class="ico" data-ico="chevronDown"></span></button></div>
+                    <div class="srow"><span>呼吸灯</span><span class="pair"><button class="dd" type="button" data-pop="popSpeed" aria-expanded="false" style="min-width:80px"><span id="speedLabel">正常</span><span class="ico" data-ico="chevronDown"></span></button><button class="sw" type="button" role="switch" aria-checked="true" aria-label="呼吸灯"></button></span></div>
+                    <div class="srow"><span>小岛大小</span><span class="pair" style="width:150px"><div class="slider" data-val="30" style="flex:1"><div class="tr"><div class="fill"></div><div class="th"></div></div></div><span style="font-size:11px;color:var(--ink2);font-variant-numeric:tabular-nums">100%</span></span></div>
+                    <div class="srow"><span>鼠标离开后自动收起</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="自动收起"></button></div>
+                    <div class="srow"><span>开机自启动<small>默认关闭</small></span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="开机自启动"></button></div>
+                    <div class="srow"><span>启动问候<small>最多每 4 小时一次</small></span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="启动问候"></button></div>
+                    <div class="srow" style="padding:8px 0"><span class="pair" style="flex-wrap:wrap"><button class="mbtn pri" type="button" id="openFull"><span class="ico" data-ico="settings"></span>完整设置</button><button class="mbtn" type="button">重新居中</button></span><button class="mbtn bad" type="button">退出</button></div>
+                  </div>
+                </div>
+              </div>
+              <div class="lay lay-greet" aria-live="polite"><b id="gTitle">晚上好，Miya</b><span id="gSub">今天 3 件 · 下一件 21:30 给妈妈回电话</span><span class="gprog"><i id="gProg"></i></span></div>
+              <div class="lay lay-remind">
+                <div class="remind-top"><span class="bell"><span class="ico" data-ico="bell"></span></span><b>该给妈妈回电话啦</b></div>
+                <div class="remind-meta">今天 21:30 · 每天重复</div>
+                <div class="remind-act">
+                  <button class="mbtn ghost" type="button" data-remind="dismiss">忽略</button>
+                  <button class="mbtn" type="button" data-pop="popSnooze" aria-expanded="false"><span class="ico" data-ico="snooze"></span>延后<span class="ico" data-ico="chevronDown"></span></button>
+                  <button class="mbtn pri" type="button" data-remind="done"><span class="ico" data-ico="check"></span>完成</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="fly mg cover-on" id="fly" role="group" aria-label="悬浮歌词预览">
+              <span class="cov" aria-hidden="true" title="专辑封面"></span>
+              <div class="lines"><span class="cur" id="flyCur">故事的小黄花 从出生那年就飘着</span><span class="nxt" id="flyNxt">童年的荡秋千 随记忆一直晃到现在</span></div>
+              <div class="slot">
+                <span class="clock" id="flyClock">下午 9:36</span>
+                <div class="ctrls">
+                  <button class="ib" type="button" id="flyLock" aria-label="锁定歌词位置" title="锁定位置"><span class="ico" data-ico="unlock"></span></button>
+                  <button class="ib" type="button" id="flyLines" aria-label="切换单双行" title="单行 / 双行"><span class="ico" data-ico="lines2"></span></button>
+                  <button class="ib" type="button" data-pop="popFly" aria-expanded="false" aria-label="更多" title="更多"><span class="ico" data-ico="more"></span></button>
+                  <button class="ib" type="button" id="flyClose" aria-label="关闭悬浮歌词" title="关闭"><span class="ico" data-ico="close"></span></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- popups -->
+            <div class="pop mg" id="popPreset" role="menu" aria-label="玻璃风格"></div>
+            <div class="pop mg" id="popFont" role="menu" aria-label="标题字体" style="min-width:230px"></div>
+            <div class="pop mg" id="popSpeed" role="menu" aria-label="呼吸速度"></div>
+            <div class="pop mg" id="popSnooze" role="menu" aria-label="延后"></div>
+            <div class="pop mg" id="popWhen" role="menu" aria-label="提醒时间" style="min-width:220px"></div>
+            <div class="pop mg" id="popFly" role="menu" aria-label="悬浮歌词选项" style="min-width:220px"></div>
+          </div>
+        </div>
+
+        <div class="controls card" aria-label="预览设置">
+          <fieldset class="ctl"><legend>小岛状态</legend><div class="seg" id="g-state"></div></fieldset>
+          <fieldset class="ctl"><legend>玻璃 preset</legend><div class="seg" id="g-preset"></div></fieldset>
+          <div class="ctl"><span class="lab">自定义 tint</span>
+            <div class="tint-row"><input type="color" id="tintColor" value="#8b7cff" aria-label="tint 颜色"><input type="range" id="tintAlpha" min="20" max="90" value="66" aria-label="tint 浓度"><span class="num" id="tintAlphaV">66%</span></div>
+            <button class="btn-page" type="button" id="applyCustom">应用自定义 tint</button>
+          </div>
+          <fieldset class="ctl"><legend>渲染模式</legend><div class="seg" id="g-blur"></div></fieldset>
+          <fieldset class="ctl"><legend>桌面背景</legend><div class="seg" id="g-wall"></div></fieldset>
+          <fieldset class="ctl"><legend>动画速度</legend><div class="seg" id="g-tm"></div></fieldset>
+          <fieldset class="ctl"><legend>头像</legend><div class="seg" id="g-av"></div>
+            <input type="file" id="avFile" accept="image/png,image/jpeg,image/gif,image/bmp,image/webp" hidden>
+          </fieldset>
+          <fieldset class="ctl"><legend>开启头像时，呼吸灯显示为</legend><div class="seg" id="g-avs"></div></fieldset>
+          <div class="ctl"><label class="lab" for="nick">我的称呼</label>
+            <input id="nick" class="btn-page" style="text-align:left;cursor:text" maxlength="12" value="Miya" placeholder="留空时问候不带称呼">
+          </div>
+          <div class="ctl"><span class="lab">模拟事件</span>
+            <div class="row-btns"><button class="btn-page" type="button" id="simRemind">提醒到点</button><button class="btn-page" type="button" id="simGreet">启动问候</button><button class="btn-page" type="button" id="simFly">显示 / 隐藏歌词</button></div>
+          </div>
+          <p class="hint">“仿玻璃”是 v0.7 的正式方案。“真实模糊”对应设置里的实验开关；浏览器的模糊比 Windows 系统模糊更柔和，仅作示意。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= AUDIT ================= -->
+    <section id="audit" aria-labelledby="h-audit">
+      <div class="sec-head">
+        <span class="eyebrow">UI 审查 · v0.6.1</span>
+        <h2 id="h-audit">哪里还有“默认控件感”</h2>
+        <p>逐个文件读完 v0.6.1 后整理的问题清单，按影响排序。“高”指一眼就能看出是默认控件，或者会让动画、文字明显出问题。</p>
+      </div>
+      <div class="tablebox"><table>
+        <thead><tr><th>区域</th><th>v0.6.1 现状</th><th>问题</th><th>影响</th><th>v0.7 处理</th></tr></thead>
+        <tbody>
+          <tr><td><b>字符图标</b></td><td><code>♫ ◷ ⇩ J ♛ ⚙ ▶ Ⅱ ▶| ◀ 🔊 🔓 🔒 ⌄ ⌃ × ♪ ⏰</code></td><td>粗细、基线、视觉大小都不统一；WPF 不支持彩色 emoji，🔓🔒🔊 实际显示成灰色线稿；字符在 Win10 和 Win11 上的字形也不同</td><td><span class="sev h">高</span></td><td>全部换成统一的矢量图标库 <code>Icons.xaml</code>（见图标章节）</td></tr>
+          <tr><td><b>展开 / 收起</b></td><td><code>AnimateSize</code> 直接动画窗口 <code>Width/Height</code>，220ms CubicEase；内容只有透明度</td><td>每一帧都改透明窗口尺寸，容易掉帧；圆角、阴影不参与过渡；收起时内容 120ms 直接消失，像“切换”而不是“变形”</td><td><span class="sev h">高</span></td><td>固定画布 + 单一进度值驱动尺寸、圆角、阴影、内容透明度（见动画章节）</td></tr>
+          <tr><td><b>Dropdown</b></td><td><code>FontFamilyCombo</code>、<code>BreathingSpeedCombo</code> 是系统 ComboBox</td><td>白底 Aero 下拉框出现在深色小岛里；字体列表把几百个系统字体平铺，没有预览、搜索和推荐</td><td><span class="sev h">高</span></td><td>玻璃下拉弹层；字体项用自身字体预览，带搜索框和“推荐”分组，列表虚拟化</td></tr>
+          <tr><td><b>字体</b></td><td>只有 <code>CompactText</code> 设了字体；其余是 WPF 默认；悬浮歌词写死 <code>Segoe UI</code></td><td>中文回落到默认字体；字号有 10/11/12/13/14/15/16/17 八种随手值；时间、音量、时钟是比例数字，跳动时左右晃</td><td><span class="sev h">高</span></td><td>统一字体栈和 8 级字号；数字用等宽数字（见 Typography）</td></tr>
+          <tr><td><b>Toggle</b></td><td><code>BreathingCheck</code>、<code>AutoCollapseCheck</code> 是默认 CheckBox</td><td>白色方框勾选框，和深色玻璃不协调；点击区域只有文字和方框</td><td><span class="sev m">中</span></td><td>改成玻璃 Toggle Switch，整行可点</td></tr>
+          <tr><td><b>Slider</b></td><td><code>VolumeSlider</code>、<code>ScaleSlider</code> 默认样式</td><td>Aero 蓝色滑块；轨道很细、拇指很小，在 70% 缩放时很难拖</td><td><span class="sev m">中</span></td><td>4px 轨道 + 渐变填充 + 14px 拇指，命中区 24px</td></tr>
+          <tr><td><b>Button</b></td><td>全局样式 <code>#FF26262C</code>，圆角 10</td><td>没有 hover、按下、禁用、焦点状态；“叫回小岛旁”禁用时看不出来；“退出”颜色写死 <code>#FF6F3340</code></td><td><span class="sev m">中</span></td><td>五种按钮：主按钮、玻璃、幽灵、图标、危险，每种都有完整状态</td></tr>
+          <tr><td><b>输入框</b></td><td>默认 TextBox，边框 <code>#383840</code></td><td>没有焦点环；没有占位文字（提醒内容靠 ToolTip 说明）；时间格式写错时只在顶栏提示</td><td><span class="sev m">中</span></td><td>玻璃输入框 + 焦点环 + 占位文字；提醒时间改为时间选择弹层</td></tr>
+          <tr><td><b>Floating Lyrics</b></td><td>黑色胶囊 <code>#F20A0A0D</code>；× / ⌄ / 🔓 / 时钟常驻</td><td>按钮常驻挤占歌词；关闭按钮在左边，不符合 Windows 习惯；歌词 15px 偏小；时钟比例数字；展开时动画窗口高度</td><td><span class="sev h">高</span></td><td>新布局：悬停才显示控制按钮，和时钟共用同一位置，歌词不位移（见 Floating Lyrics）</td></tr>
+          <tr><td><b>提醒列表</b></td><td>默认 ListBox，双击删除</td><td>系统蓝色选中高亮；双击删除没人能发现；没有完成状态</td><td><span class="sev m">中</span></td><td>由 Tasks &amp; Reminders 取代：圆形勾选、行内菜单</td></tr>
+          <tr><td><b>ProgressBar</b></td><td>下载、桌宠亲密度 / 精力</td><td>Win10 绿色进度条</td><td><span class="sev l">低</span></td><td>4px 渐变细条；桌宠相关随功能删除</td></tr>
+          <tr><td><b>ScrollViewer</b></td><td>设置页</td><td>系统滚动条占 17px 宽，挤压内容</td><td><span class="sev l">低</span></td><td>悬浮细滚动条</td></tr>
+          <tr><td><b>取色</b></td><td>WinForms <code>ColorDialog</code></td><td>Win95 风格对话框</td><td><span class="sev l">低</span></td><td>preset 色块 + “自定义…”；对话框暂时保留作为兜底</td></tr>
+          <tr><td><b>颜色</b></td><td>XAML 里写死十几个颜色（<code>#FF17171C</code>、<code>#FFC7BEFF</code>、<code>#FF6F6F78</code>…）</td><td>没法换主题，也没法做 tint preset</td><td><span class="sev m">中</span></td><td>全部改成颜色 token（DynamicResource），preset 切换只换 token</td></tr>
+          <tr><td><b>窗口外观</b></td><td>纯色背景 + 1px 描边，无投影</td><td>“贴”在屏幕上，没有层次</td><td><span class="sev m">中</span></td><td>Liquid Glass 七层叠加 + 两级投影</td></tr>
+          <tr><td><b>状态提示</b></td><td><code>CompactText.Text</code> 21 处直接赋值，部分带 <code>♫ ⏰ ⇩</code> 前缀</td><td>图标和文字混在字符串里，不能单独着色或做动画</td><td><span class="sev l">低</span></td><td>文字左侧独立图标位；只有带前缀的 6 处需要改调用</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <!-- ================= TOKENS ================= -->
+    <section id="tokens" aria-labelledby="h-tokens">
+      <div class="sec-head">
+        <span class="eyebrow">Design Tokens</span>
+        <h2 id="h-tokens">一套 token，三个窗口共用</h2>
+        <p>主岛、悬浮歌词和弹层都从同一个 <code>Themes/Tokens.xaml</code> 取值。preset 切换只换颜色 token，尺寸、圆角、间距和动画不变。尺寸从 Thor 的 dp 体系按桌面密度缩小。</p>
+      </div>
+
+      <h3>Typography</h3>
+      <div class="tablebox"><table>
+        <thead><tr><th>角色</th><th>字体</th><th>字号 / 行高</th><th>字重</th><th>用在</th></tr></thead>
+        <tbody>
+          <tr><td>悬浮歌词 · 当前句</td><td>Display</td><td class="num">18/26 · 双行 20/28</td><td>Semibold</td><td>Floating Lyrics（字号可选 小 16 / 中 18 / 大 22）</td></tr>
+          <tr><td>面板标题</td><td>Display</td><td class="num">17/24</td><td>Semibold</td><td>新建下载、J-Space 等面板标题</td></tr>
+          <tr><td>岛内歌词 · 当前句</td><td>UI</td><td class="num">15/22</td><td>Semibold</td><td>音乐页歌词框</td></tr>
+          <tr><td>标题</td><td>UI</td><td class="num">14/20</td><td>Semibold</td><td>歌名、提醒卡标题</td></tr>
+          <tr><td>小岛收起文字 · 正文</td><td>UI（标题字体仍可自定义）</td><td class="num">13/18</td><td>Semibold / Regular</td><td><code>CompactText</code>、任务、设置行</td></tr>
+          <tr><td>次要</td><td>UI</td><td class="num">12/16</td><td>Regular</td><td>歌手、说明、按钮文字</td></tr>
+          <tr><td>标签 · 数字</td><td>UI · 等宽数字</td><td class="num">11/14</td><td>Medium</td><td>时间、百分比、任务时间标签、悬浮歌词时钟（12）</td></tr>
+          <tr><td>分组标题</td><td>UI</td><td class="num">10.5/14 · 字距 6%</td><td>Semibold</td><td>下拉弹层分组</td></tr>
+        </tbody>
+      </table></div>
+      <div class="grid2">
+        <div class="card"><h3 style="margin-bottom:8px">字体栈（系统字体，不打包）</h3>
+          <ul class="clean">
+            <li><b>UI</b> <code>Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI</code></li>
+            <li><b>Display</b> <code>Segoe UI Variable Display, Segoe UI, Microsoft YaHei UI</code></li>
+            <li>Win10 没有 Segoe UI Variable 时自动回落到 Segoe UI；中文统一走 Microsoft YaHei UI，不再落到宋体。</li>
+            <li>用户自定义的标题字体只作用于 <code>CompactText</code>，与 v0.6.1 行为一致。</li>
+          </ul></div>
+        <div class="card"><h3 style="margin-bottom:8px">渲染与动画稳定性</h3>
+          <ul class="clean">
+            <li><b>TextFormattingMode=Ideal</b>：Display 模式会把字形对齐到像素，动画中途会跳。</li>
+            <li><b>TextRenderingMode=Grayscale</b>：透明窗口本来就用不了 ClearType，明确设成灰度，避免不同机器效果不一。</li>
+            <li><b>TextHintingMode=Animated</b>：只加在会动的内容层上。</li>
+            <li><b>UseLayoutRounding=True</b> 加在三个窗口上；数字用 <code>Typography.NumeralAlignment="Tabular"</code>。</li>
+            <li>文字永远不放进 ScaleTransform，也不放在带 Effect 的元素里面（见动画章节）。</li>
+          </ul></div>
+      </div>
+
+      <h3>Color system</h3>
+      <div class="grid2">
+        <div class="card"><h3 style="margin-bottom:8px">固定色（不随 preset 变）</h3>
+          <div class="tablebox" style="border:0"><table style="min-width:0">
+            <tbody>
+              <tr><td><span class="swatch" style="display:inline-block;background:#8b7cff;vertical-align:middle"></span></td><td><code>Accent</code> #8B7CFF</td><td>呼吸灯默认色（不改）、选中、焦点环</td></tr>
+              <tr><td><span class="swatch" style="display:inline-block;background:linear-gradient(135deg,#8b7cff,#d884c0);vertical-align:middle"></span></td><td><code>Primary</code> #8B7CFF → #D884C0</td><td>主按钮、开关开启、进度、滑块填充；与 Thor 的紫→粉同一方向</td></tr>
+              <tr><td><span class="swatch" style="display:inline-block;background:linear-gradient(135deg,#d74f74,#e0466f);vertical-align:middle"></span></td><td><code>Danger</code> #D74F74 → #E0466F</td><td>退出、删除；取自 Thor 的 StopRed</td></tr>
+              <tr><td><span class="swatch" style="display:inline-block;background:#4fbf8e;vertical-align:middle"></span></td><td><code>Success</code> #4FBF8E</td><td>完成反馈</td></tr>
+              <tr><td><span class="swatch" style="display:inline-block;background:#f0b878;vertical-align:middle"></span></td><td><code>Warning</code> #F0B878</td><td>即将到期</td></tr>
+              <tr><td><span class="swatch" style="display:inline-block;background:#ff8fae;vertical-align:middle"></span></td><td><code>Overdue</code> #FF8FAE（深色）/ #B5375C（浅色）</td><td>已过期标签</td></tr>
+            </tbody></table></div>
+        </div>
+        <div class="card"><h3 style="margin-bottom:8px">随 preset 变的 token</h3>
+          <ul class="clean">
+            <li><b>Ink / Ink2 / Ink3</b>：文字 100% / 68% / 44%。浅色 preset 用深紫墨色 <code>#2A2230</code>，深色用白色。</li>
+            <li><b>Lyric</b>：岛内当前句歌词色。深色 <code>#C7BEFF</code>（沿用 v0.6.1），浅色 <code>#5B47C9</code>。</li>
+            <li><b>Control / Control-hover</b>：L3 控件底色，白 8% / 13%（深色），白 50% / 65%（浅色）。</li>
+            <li><b>Well</b>：内嵌区域（歌词框、tab 轨道）。不做“玻璃套玻璃”，内层只用浅色凹槽。</li>
+            <li><b>Lens</b>：选中项“透镜”底色，白 14%（深色）/ 55%（浅色）。</li>
+            <li><b>Shadow</b>：深色 preset 用黑色投影；浅色 preset 用带紫色的投影 <code>rgba(90,60,120,.18)</code>（Thor Day 方案）。</li>
+            <li>自定义 tint 时，Ink 由背景亮度自动决定，复用 v0.6.1 现有的 <code>ContrastBrush</code> 算法。</li>
+          </ul></div>
+      </div>
+
+      <div class="grid3">
+        <div class="card"><h3 style="margin-bottom:8px">Radius</h3>
+          <div class="tablebox" style="border:0"><table style="min-width:0"><tbody>
+            <tr><td><code>Pill</code></td><td class="num">高 / 2</td><td>小岛收起、Compact、单行歌词、按钮</td></tr>
+            <tr><td><code>XL</code></td><td class="num">26</td><td>展开小岛、提醒卡（Thor 卡片 26）</td></tr>
+            <tr><td><code>L</code></td><td class="num">24</td><td>双行悬浮歌词</td></tr>
+            <tr><td><code>M</code></td><td class="num">14</td><td>弹层、歌词框、下载卡</td></tr>
+            <tr><td><code>S</code></td><td class="num">10</td><td>输入框、下拉框</td></tr>
+            <tr><td><code>XS</code></td><td class="num">6</td><td>时间标签、色块</td></tr>
+          </tbody></table></div></div>
+        <div class="card"><h3 style="margin-bottom:8px">Spacing（4 的倍数）</h3>
+          <div class="tablebox" style="border:0"><table style="min-width:0"><tbody>
+            <tr><td><code>2</code></td><td>tab 轨道内边距</td></tr>
+            <tr><td><code>4 · 6</code></td><td>图标与文字、按钮组</td></tr>
+            <tr><td><code>8</code></td><td>行内元素、行间</td></tr>
+            <tr><td><code>10 · 12</code></td><td>分区间距、展开态上内边距</td></tr>
+            <tr><td><code>14 · 16</code></td><td>展开态左右内边距、收起态左右</td></tr>
+            <tr><td><code>20</code></td><td>悬浮歌词左右</td></tr>
+          </tbody></table></div>
+          <p class="hint" style="margin-top:8px">行高：设置行 38，任务行 36，控件 28~30，图标按钮 28（命中 32）。</p></div>
+        <div class="card"><h3 style="margin-bottom:8px">Shadow</h3>
+          <div class="tablebox" style="border:0"><table style="min-width:0"><tbody>
+            <tr><td><code>E0</code></td><td>无</td><td>岛内一切元素</td></tr>
+            <tr><td><code>E1</code></td><td class="num">0 1 2 · 18%</td><td>滑块、开关拇指</td></tr>
+            <tr><td><code>E2</code></td><td class="num">0 4 14 · 32%<br>0 10 30 · 14%</td><td>收起、Compact、悬浮歌词</td></tr>
+            <tr><td><code>E3</code></td><td class="num">0 10 28 · 32%<br>0 24 60 · 14%</td><td>展开、提醒卡、弹层</td></tr>
+          </tbody></table></div>
+          <p class="hint" style="margin-top:8px">来自 Figma Tab 栏投影 (4,4)20 25% + (10,10)60 10%，改成垂直方向，适合屏幕顶部。</p></div>
+      </div>
+    </section>
+
+    <!-- ================= GLASS ================= -->
+    <section id="glass" aria-labelledby="h-glass">
+      <div class="sec-head">
+        <span class="eyebrow">Liquid Glass</span>
+        <h2 id="h-glass">从 Figma 到 Thor 到 WPF</h2>
+        <p>Thor 和 Miya Island 用的是同一份配方：JoyTaung 文件里每块玻璃都是“背景模糊 → 液化边 → 边缘散射 → 高光”四层。Thor 在 Android 上能拿到自己的壁纸做真实折射；Miya Island 是 WPF 透明窗口，拿不到桌面，所以默认用七层叠加“仿”出来，参数按 Thor 的 <code>GlassPolicy</code> 随高度缩放。</p>
+      </div>
+
+      <div class="tablebox"><table>
+        <thead><tr><th>Figma 图层</th><th>Figma 值（80px 按钮）</th><th>Thor（Compose）</th><th>Miya Island WPF 层</th><th>WPF 做法</th></tr></thead>
+        <tbody>
+          <tr><td>背景模糊</td><td class="num">blur 4.7 · 白 10%</td><td>RenderEffect 模糊自己的壁纸</td><td>L1 Tint 底色</td><td>preset 底色 + 透明度；实验开关开启时改用系统模糊</td></tr>
+          <tr><td>液化效果 · 颗粒</td><td class="num">texture 16.6 · 25%</td><td>grain 7% / 10%</td><td>L2 Grain</td><td>140px 平铺噪点 PNG，ImageBrush，4~10%</td></tr>
+          <tr><td>液化效果 · 边缘带</td><td class="num">内阴影 11 / 扩散 12</td><td>AGSL 边缘放大，带宽 0.2h</td><td>L3 边缘光晕带</td><td>描边 Border（粗 = 带宽）+ BlurEffect，按胶囊形状裁剪</td></tr>
+          <tr><td>高光 · 体积暗边</td><td class="num">(±1.7,±3.3) 88 · 黑 10%</td><td>innerDark</td><td>L4 体积</td><td>顶亮底暗的 LinearGradient 叠加</td></tr>
+          <tr><td>高光 · 双向边缘光</td><td class="num">(−1,−2) 4 · 白 35% ×2</td><td>innerLightStrong</td><td>L5 内高光</td><td>两条 1px 内描边，分别偏左上、右下</td></tr>
+          <tr><td>高光 · 径向描边</td><td class="num">1px · 白 45% / 30%</td><td>1.2dp 描边</td><td>L6 Rim</td><td>两个 Border，RadialGradientBrush 描边 1.2px</td></tr>
+          <tr><td>边缘散射</td><td class="num">4px · 红橙蓝青</td><td>2.5dp · 粉紫桃 55%</td><td>L7 Dispersion</td><td>只在激活瞬间出现（展开、提醒到点、透镜滑动），平时透明度 0</td></tr>
+          <tr><td>Tab 投影</td><td class="num">(4,4)20 25% · (10,10)60 10%</td><td>dropShadow</td><td>L0 投影板</td><td>独立的“投影板” Border 加 DropShadowEffect，<b>不包住任何文字</b></td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="grid2">
+        <div class="card"><h3 style="margin-bottom:8px">尺寸缩放（GlassPolicy，h = 高度 DIP）</h3>
+          <div class="tablebox" style="border:0"><table style="min-width:0" id="policyTable">
+            <thead><tr><th>表面</th><th>h</th><th>边缘带</th><th>阴影系数</th><th>真实模糊</th></tr></thead><tbody></tbody></table></div>
+          <p class="hint" style="margin-top:8px">边缘带 = clamp(0.2h, 6, 22)；阴影系数 = clamp(h/80, 0.6, 1.4)；模糊 = clamp(0.07h, 3, 16)。和 Thor 的公式完全一致。</p></div>
+        <div class="card"><h3 style="margin-bottom:8px">性能与清晰度规则</h3>
+          <ul class="clean">
+            <li><b>三级玻璃</b>（沿用 GPT 方案的叫法）：<b>Strong</b> 外壳（小岛、悬浮歌词、弹层、设置窗口）七层全开；<b>Medium</b> 透镜（选中 tab、播放键、开关、头像光环）只有底色 + 内高光 + 描边；<b>Light</b> 控件只有底色 + 1px 描边，没有任何 Effect。</li>
+            <li><b>不做玻璃套玻璃</b>：岛内区域用 Well 凹槽，不再叠玻璃。</li>
+            <li><b>Effect 不包文字</b>：BlurEffect、DropShadowEffect 只加在单独的装饰层上；WPF 的 Effect 会把子元素整体栅格化，包住文字就会发糊。</li>
+            <li><b>缓存</b>：静态玻璃层加 <code>BitmapCache</code>；展开动画期间 L3 边缘带临时关闭模糊，结束后恢复。</li>
+          </ul></div>
+      </div>
+
+      <h3>Preset</h3>
+      <div class="spec-stage" id="presetStageDark" aria-label="深色背景上的 preset"></div>
+      <div class="spec-stage light" id="presetStageLight" aria-label="浅色背景上的 preset"></div>
+      <div class="tablebox"><table id="presetTable">
+        <thead><tr><th>Preset</th><th>Tint</th><th>透明度 · 仿玻璃</th><th>透明度 · 真实模糊</th><th>文字</th><th>边缘光</th><th>投影</th><th>适合</th></tr></thead><tbody></tbody></table></div>
+      <div class="callout">
+        <p><b>默认用 Midnight</b>：最接近 v0.6.1 的深色小岛，用户升级后第一眼不会觉得“换了一个软件”。</p>
+        <p><b>Clear Glass</b> 就是 Figma 原值（白 10%），最通透，但仿玻璃模式下压在浅色、杂乱背景上会看不清，所以文字加 1px 投影，设置里也会提示“建议配合真实模糊使用”。</p>
+        <p><b>自定义 tint</b>：颜色 + 浓度（20%~90%）。边缘光、投影、文字颜色按亮度自动归入浅色或深色一组。</p>
+      </div>
+
+      <div class="grid2">
+        <div class="card"><h3 style="margin-bottom:8px">真实模糊（实验开关）</h3>
+          <ul class="clean">
+            <li>设置里新增“真实背景模糊”，<b>默认关</b>，<code>AppearanceSettings.ExperimentalBlur</code>，旧 <code>appearance.json</code> 没有这个字段时按 false 读取。</li>
+            <li>用 <code>SetWindowCompositionAttribute</code> 开 Acrylic，失败时退到普通模糊；都失败就把开关置灰，并提示“当前系统不支持”。</li>
+            <li>系统模糊作用于整个矩形窗口，所以用窗口区域裁成胶囊形；这时<b>外投影不显示</b>，边缘可能有轻微锯齿，靠 1.2px Rim 盖住。</li>
+            <li>展开动画期间暂停模糊，结束后恢复，避免每帧重算窗口区域；底色透明度 × 0.55，让模糊透出来。</li>
+          </ul></div>
+        <div class="card"><h3 style="margin-bottom:8px">悬浮歌词共用这套系统</h3>
+          <ul class="clean">
+            <li>默认“跟随灵动岛”：同一个 preset、同一个模糊开关。</li>
+            <li>在歌词“更多”菜单里可以关掉跟随，单独选 preset（比如岛用 Midnight，歌词用 Clear Glass）。</li>
+            <li>单行高 44、双行高 76，按 GlassPolicy 自动得到各自的边缘带和阴影系数。</li>
+          </ul></div>
+      </div>
+    </section>
+
+    <!-- ================= CONTROLS ================= -->
+    <section id="controls" aria-labelledby="h-controls">
+      <div class="sec-head">
+        <span class="eyebrow">控件</span>
+        <h2 id="h-controls">控件规格</h2>
+        <p>每个控件都在上方预览里可以点。下面是尺寸和状态规格，实现时一个控件一个 <code>Themes/Controls/*.xaml</code>。</p>
+      </div>
+      <div class="tablebox"><table>
+        <thead><tr><th>控件</th><th>尺寸</th><th>静止</th><th>悬停 / 按下</th><th>禁用 / 焦点</th><th>替代</th></tr></thead>
+        <tbody>
+          <tr><td>主按钮</td><td class="num">h28 · 左右 12 · Pill</td><td>Primary 渐变，白字，顶部 1px 高光</td><td>亮度 +6% / 底板缩放 .97</td><td>40% / 2px Accent 焦点环</td><td>“添加”“开始下载”“完成”</td></tr>
+          <tr><td>玻璃按钮</td><td class="num">h28 · Pill</td><td>Control 底色 + 1px 描边</td><td>Control-hover / .97</td><td>40% / 焦点环</td><td>“导入 LRC”“恢复默认”</td></tr>
+          <tr><td>幽灵按钮</td><td class="num">h28</td><td>透明，Ink2 文字</td><td>Control 底色</td><td>40%</td><td>“忽略”</td></tr>
+          <tr><td>图标按钮</td><td class="num">28 · 图标 18 · 命中 32</td><td>透明，Ink2</td><td>Control-hover，Ink</td><td>40% / 焦点环</td><td>锁、缩小、收起、上一首</td></tr>
+          <tr><td>危险按钮</td><td class="num">h28 · Pill</td><td>Danger 渐变</td><td>亮度 +6% / .97</td><td>40%</td><td>“退出”、删除确认</td></tr>
+          <tr><td>透镜按钮</td><td class="num">40 圆</td><td>Lens 底色 + 底部内高光 + 淡紫描边</td><td>.96</td><td>—</td><td>播放 / 暂停</td></tr>
+          <tr><td>Toggle</td><td class="num">36×20 · 拇指 16</td><td>关：Sep 底；开：Primary 渐变</td><td>拇指 220ms 轻回弹</td><td>40% / 焦点环</td><td><code>BreathingCheck</code>、<code>AutoCollapseCheck</code> 及新开关</td></tr>
+          <tr><td>Slider</td><td class="num">轨道 4 · 拇指 14 · 命中 24</td><td>渐变填充</td><td>拇指放大到 16</td><td>键盘 ←→ 步进</td><td><code>VolumeSlider</code>、<code>ScaleSlider</code></td></tr>
+          <tr><td>Dropdown</td><td class="num">h28 · R10 · 最小宽 104</td><td>Control 底色 + 下箭头</td><td>打开时箭头旋转 180°</td><td>焦点环；键盘 ↑↓ Enter Esc</td><td><code>FontFamilyCombo</code>、<code>BreathingSpeedCombo</code></td></tr>
+          <tr><td>下拉弹层</td><td class="num">R14 · 内边距 6 · 项高 28</td><td>L1 玻璃 + E3 投影</td><td>项悬停 Control-hover</td><td>选中项右侧 ✓</td><td>独立 Popup 窗口，160ms 淡入 + 6px 下滑</td></tr>
+          <tr><td>输入框</td><td class="num">h30 · R10</td><td>Control 底色，占位文字 Ink3</td><td>—</td><td>焦点：1px Accent 描边 + 3px 25% 外环</td><td>任务、下载链接、待机标题</td></tr>
+          <tr><td>Tab 导航</td><td class="num">h34 · 5 等分</td><td>Well 轨道</td><td>透镜滑动 240ms 轻回弹</td><td>键盘 ←→</td><td>原来 6 个字符按钮</td></tr>
+          <tr><td>任务勾选</td><td class="num">18 圆</td><td>1.5px Ink3 圆圈</td><td>完成：渐变填充 + 对勾描画 220ms</td><td>焦点环</td><td>提醒列表</td></tr>
+          <tr><td>ToolTip</td><td class="num">R8 · 12px</td><td>L3 玻璃 + E2 投影</td><td>延迟 600ms</td><td>—</td><td>系统 ToolTip</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><p><b>按压只缩放玻璃底板，不缩放文字。</b>按钮的 RenderTransform 加在背景层上，文字层保持原位，这样按下时不会发糊。</p></div>
+    </section>
+
+    <!-- ================= ICONS ================= -->
+    <section id="icons" aria-labelledby="h-icons">
+      <div class="sec-head">
+        <span class="eyebrow">图标</span>
+        <h2 id="h-icons">圆润、轻量、细线</h2>
+        <p>24×24 网格，有效区域 20，描边 1.6，圆角端点和转角，内角半径至少 1.5，不用实心填充（核心图标的双色除外）。全部是 SVG 路径，可以直接转成 WPF 的 <code>Geometry</code> 资源。</p>
+      </div>
+      <div class="icon-grid" id="iconGrid"></div>
+      <div class="card" style="display:grid;gap:10px">
+        <h3>尺寸</h3>
+        <div class="sizes" id="iconSizes"></div>
+        <p class="hint">16px 用在任务时间标签和 tab；18px 用在图标按钮；20px 用在播放键；24px 用在设置预览。实现时用 Viewbox 缩放，描边按 <code>1.5 × 24 / 尺寸</code> 反算，保证任何尺寸下看起来都是 1.5px 细线。</p>
+      </div>
+      <h3>核心图标</h3>
+      <div class="core-grid" id="coreGrid"></div>
+    </section>
+
+    <!-- ================= MOTION ================= -->
+    <section id="motion" aria-labelledby="h-motion">
+      <div class="sec-head">
+        <span class="eyebrow">动画</span>
+        <h2 id="h-motion">变形，而不是改尺寸</h2>
+        <p>一次展开里，容器尺寸、圆角、阴影、内容透明度由<b>同一个进度值</b>驱动，所以永远同步。窗口本身不再变大小。</p>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3 style="margin-bottom:8px">WPF 结构</h3>
+          <ul class="clean">
+            <li><b>固定画布</b>：窗口大小 = 最大展开尺寸 × 缩放 + 四周 24px 阴影边距，只创建一次；透明像素会把点击穿透给下面的窗口。</li>
+            <li><b>一个进度值</b>：自定义依赖属性 <code>MorphProgress</code>（0→1），只对它做一个 DoubleAnimation；回调里同时算出宽、高、圆角、投影强度、各内容层透明度。</li>
+            <li><b>内容不缩放</b>：每个状态的内容按最终尺寸排好版，放在会变形的裁剪区域里，只做淡入淡出和整像素位移。</li>
+            <li><b>位置</b>：<code>_horizontalCenter</code> 继续是唯一基准，<code>Left = 中心 − 画布宽 / 2</code>，展开时窗口不动，PositionFix 修的偏移从结构上不会再出现。</li>
+          </ul></div>
+        <div class="card"><h3 style="margin-bottom:8px">Motion tokens</h3>
+          <div class="tablebox" style="border:0"><table style="min-width:0"><tbody>
+            <tr><td><code>Micro</code></td><td class="num">120ms</td><td>悬停、按压、控制按钮显隐</td></tr>
+            <tr><td><code>Fade</code></td><td class="num">180ms</td><td>内容淡入</td></tr>
+            <tr><td><code>Standard</code></td><td class="num">240ms</td><td>透镜滑动、弹层、歌词单双行</td></tr>
+            <tr><td><code>Expand</code></td><td class="num">340ms · spring</td><td>收起 → 展开，阻尼 0.78，过冲约 2%</td></tr>
+            <tr><td><code>Collapse</code></td><td class="num">260ms · in-out</td><td>展开 → 收起，不回弹</td></tr>
+            <tr><td><code>Morph</code></td><td class="num">300ms · spring</td><td>Compact ↔ Normal</td></tr>
+            <tr><td><code>Lyric</code></td><td class="num">220ms</td><td>换句：旧句上移 6px 淡出，新句从下方 6px 进入</td></tr>
+          </tbody></table></div>
+          <p class="hint" style="margin-top:8px">缓动：Standard (0.2, 0, 0, 1)；Exit (0.4, 0, 1, 1)；In-out (0.4, 0, 0.2, 1)；Spring 用一个自定义 <code>IEasingFunction</code>。设置里加“减少动态效果”，开启后所有时长 × 0.01。</p></div>
+      </div>
+      <div class="card" style="display:grid;gap:12px">
+        <h3>展开（Normal → Expanded），按时间比例绘制</h3>
+        <div class="tl" id="tlExpand"></div>
+        <h3 style="margin-top:6px">收起（Expanded → Normal）</h3>
+        <div class="tl" id="tlCollapse"></div>
+      </div>
+      <div class="callout"><p><b>呼吸灯是变形的“铰链”。</b>它是唯一一个跨状态保留的元素，位置随容器平滑移动，动画参数完全沿用 v0.6.1（1.7s、透明度 .42→1、缩放 .92→1.18、Sine），状态切换时不会重新开始闪。</p></div>
+    </section>
+
+    <!-- ================= COMPACT ================= -->
+    <section id="compact" aria-labelledby="h-compact">
+      <div class="sec-head">
+        <span class="eyebrow">Compact Mode</span>
+        <h2 id="h-compact">两个方案</h2>
+        <p>两种都保留呼吸灯、都是 Liquid Glass、点击后直接展开、可以拖动并记住位置。区别在于要不要显示一点信息。</p>
+      </div>
+      <div class="compare">
+        <div class="card" style="display:grid;gap:12px">
+          <div class="cmp-stage"><div class="demo demoA mg" style="--tint-rgb:16 15 22;--tint-a:.74;--amul:1;--ink:#fff;--glow:.14;--sheen:.1;--shade:.18;--idark:.3;--l35:.22;--rim:.45;--sh1:rgb(0 0 0/.3);--sh2:rgb(0 0 0/.12);--dot:#8b7cff;--tsh:none;--band:6px"><span class="d"></span></div><span class="lbl">A · 小圆 32 ↔ Normal</span></div>
+          <h3>A · 小圆 Orb　<span class="num muted">32 × 32</span></h3>
+          <ul class="clean">
+            <li><b>优点</b>：占位最小（Normal 的 15%），呼吸灯成为唯一焦点，最安静。</li>
+            <li><b>缺点</b>：看不到任何状态（在不在放歌、有没有到期任务）。</li>
+            <li><b>缺点</b>：目标小，拖动和点击需要更准，命中区要扩到 40。</li>
+            <li>圆 → 胶囊要同时改宽高比，过渡里有一段“拉长”。</li>
+          </ul>
+        </div>
+        <div class="card" style="display:grid;gap:12px">
+          <div class="cmp-stage"><div class="demo demoB mg" style="--tint-rgb:16 15 22;--tint-a:.74;--amul:1;--ink:#fff;--glow:.14;--sheen:.1;--shade:.18;--idark:.3;--l35:.22;--rim:.45;--sh1:rgb(0 0 0/.3);--sh2:rgb(0 0 0/.12);--dot:#8b7cff;--tsh:none;--band:6px"><span class="d"></span></div><span class="lbl">B · 小胶囊 104 ↔ Normal</span></div>
+          <h3>B · 小胶囊 Mini　<span class="num muted">104 × 30</span>　<span class="pill-tag">推荐</span></h3>
+          <ul class="clean">
+            <li><b>优点</b>：保留一点状态，播放时显示细律动条和时间，有到期任务时显示铃铛和数量。</li>
+            <li><b>优点</b>：和 Normal 是同一个胶囊形状，变形只改宽高，最顺。</li>
+            <li><b>优点</b>：目标更大，好点也好拖。</li>
+            <li><b>缺点</b>：宽度是 A 的 3 倍；有信息就会多吸引一点注意。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card"><h3 style="margin-bottom:8px">交互（两个方案相同）</h3>
+        <ul class="clean">
+          <li><b>进入</b>：展开态顶栏的“缩小”按钮；设置里可选“启动时为 Compact”。</li>
+          <li><b>展开</b>：单击直接到展开态。Compact 下<b>悬停不自动展开</b>，这样才真正不打扰。</li>
+          <li><b>拖动</b>：按下后移动超过 4px 算拖动，否则算单击。锁定时不能拖，但仍可单击展开。</li>
+          <li><b>位置</b>：Compact、Normal、Expanded 共用一个顶部中心锚点，拖哪个状态都会更新同一个位置。</li>
+          <li><b>呼吸灯</b>：保持单色，速度和开关沿用现有设置，不做状态变色。</li>
+        </ul></div>
+    </section>
+
+    <!-- ================= LYRICS ================= -->
+    <section id="lyrics" aria-labelledby="h-lyrics">
+      <div class="sec-head">
+        <span class="eyebrow">Floating Lyrics</span>
+        <h2 id="h-lyrics">新布局</h2>
+        <p>上方预览里的悬浮歌词就是新布局，鼠标移上去可以看到控制按钮，“更多”里是重做的下拉菜单。</p>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3 style="margin-bottom:8px">布局规格</h3>
+          <div class="tablebox" style="border:0"><table style="min-width:0"><tbody>
+            <tr><td>单行</td><td class="num">h44 · R22 · 左 20 · 右侧位 96</td><td>当前句 18/26 Semibold，居中</td></tr>
+            <tr><td>双行</td><td class="num">h76 · R24 · 上下 12</td><td>当前句 20/28 + 下一句 14/20 Ink2，间距 2</td></tr>
+            <tr><td>宽度</td><td class="num">默认 560 · 360~760</td><td>跟随字号档位，不随每句歌词变宽，避免抖动</td></tr>
+            <tr><td>右侧位</td><td class="num">96</td><td>平时显示时钟 12 Semibold 等宽；悬停时淡出，同一位置淡入控制按钮</td></tr>
+            <tr><td>控制按钮</td><td class="num">22 · 图标 15 · 间距 2</td><td>锁定、单双行、更多、关闭（关闭在最右，符合 Windows 习惯）</td></tr>
+          </tbody></table></div></div>
+        <div class="card"><h3 style="margin-bottom:8px">对齐与状态</h3>
+          <ul class="clean">
+            <li><b>歌词不位移</b>：歌词区固定在“左边距 ~ 右侧位”之间居中，控制按钮出现时不挤歌词。</li>
+            <li><b>单双行统一</b>：两种状态用同样的左右内边距和同一条居中轴；切换时高度用 Standard 240ms 变化。</li>
+            <li><b>超长歌词</b>：先降一档字号，再用省略号，不做跑马灯。</li>
+            <li><b>换句</b>：旧句上移 6px 淡出，新句从下方进入；双行时下一句上移变成当前句。</li>
+            <li><b>保留的行为</b>：拖背景移动、双击切换单双行、锁定保存、位置记忆、超出屏幕时重新放置。</li>
+            <li><b>锁定</b>：语义不变，只锁位置。</li>
+          </ul></div>
+      </div>
+      <div class="card"><h3 style="margin-bottom:8px">“更多”下拉菜单</h3>
+        <ul class="clean">
+          <li><b>字号</b>：小 16 / 中 18 / 大 22（分段按钮）</li>
+          <li><b>显示下一句</b>（即双行）· <b>显示时钟</b> · <b>对齐</b>：居中 / 左对齐</li>
+          <li><b>跟随灵动岛玻璃</b>：关闭后可单独选 preset</li>
+          <li>分隔线下方：<b>关闭悬浮歌词</b></li>
+        </ul></div>
+    </section>
+
+
+    <!-- ================= AVATAR & GREETING ================= -->
+    <section id="avatar" aria-labelledby="h-avatar">
+      <div class="sec-head">
+        <span class="eyebrow">头像与问候</span>
+        <h2 id="h-avatar">可选头像、自定义称呼、更大的文案池</h2>
+        <p>头像和问候都可以关掉。关掉头像时，小岛和前面的方案完全一样；打开后，呼吸灯变成头像上的光环或角标，颜色、开关、速度仍然用原来的设置。</p>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3 style="margin-bottom:8px">头像</h3>
+          <ul class="clean">
+            <li><b>开关</b>：“显示头像”，<b>默认关闭</b>，升级后外观不变。</li>
+            <li><b>图片来源</b>：内置默认头像（由 v0.6.1 的 <code>MiyaPet.png</code> 裁出脸部，改名为 <code>Assets/DefaultAvatar.png</code> 保留），或用户自定义图片（PNG / JPG / BMP / GIF 首帧；系统装了 WebP 解码器时也支持 WebP）。</li>
+            <li><b>导入</b>：弹出圆形裁剪框，可以拖动和缩放（100%~300%）；确认后裁成 256×256 存到 <code>%LocalAppData%\MiyaIsland\avatar.png</code>，原图删掉也不影响。</li>
+            <li><b>出现的位置</b>：收起 26 · Compact A 24 · Compact B 20 · 展开顶栏 24 · 提醒卡 34 · 问候卡 40（问候卡宽 400）。悬浮歌词那里显示专辑封面，不显示头像。</li>
+          </ul></div>
+        <div class="card"><h3 style="margin-bottom:8px">头像和呼吸灯怎么融合</h3>
+          <ul class="clean">
+            <li><b>光环</b>（默认）：头像外圈 2px，颜色 = 指示灯颜色。时长、透明度曲线（.42 → 1）和 v0.6.1 一样；缩放幅度从 .92→1.18 降到 1.00→1.08，避免头像跟着“跳”。</li>
+            <li><b>角标</b>：头像右下角 9px 小圆点，就是原来的呼吸灯，动画一模一样。</li>
+            <li>“开启呼吸灯”关掉时，光环和角标都静止显示。</li>
+            <li>呼吸灯的逻辑代码 <code>StartBreathingAnimation()</code> 不改，只是动画目标从圆点换成光环或角标。</li>
+          </ul></div>
+      </div>
+
+      <div class="grid2">
+        <div class="card"><h3 style="margin-bottom:8px">自定义称呼</h3>
+          <ul class="clean">
+            <li>设置里的“我的称呼”，最多 12 个字，<b>默认留空</b>。</li>
+            <li>填了 <b>Miya</b>：“早上好，Miya 今天打算做点什么？”；填了 <b>小文</b>：“小文，很高兴今天又见到你。”</li>
+            <li>留空时，带 <code>{name}</code> 的句子不会被选中，只用不带称呼的句子，不会出现“，很高兴见到你”这种缺字的句子。</li>
+            <li>填了称呼后，展开顶栏的标题从“Miya Island”变成“晚上好，小文”。</li>
+          </ul></div>
+        <div class="card"><h3 style="margin-bottom:8px">规则</h3>
+          <ul class="clean">
+            <li><b>什么时候出现</b>：启动 1.5 秒后；每次启动最多一次，距离上次至少 4 小时；可以关闭。</li>
+            <li><b>怎么选</b>：候选 = 当前时段 + 当前任务状态 + 特殊日子（周一、周五、周末、好久没打开、第一次启动）。有逾期时优先任务类；填了称呼时，带称呼的句子权重 ×1.5。</li>
+            <li><b>不重复</b>：最近用过的 8 句不会再选中（<code>RecentGreetings</code>）。</li>
+            <li><b>第二行</b>：问候卡第二行永远是客观的任务摘要，例如“今天 3 件 · 下一件 21:30 给妈妈回电话”。</li>
+            <li><b>文案文件</b>：内置文案放在 <code>Assets/greetings.zh-CN.json</code>，以后改文案不用改代码。</li>
+          </ul></div>
+      </div>
+
+      <div class="card" style="display:grid;gap:12px">
+        <h3>试一下</h3>
+        <div class="try-row">
+          <label for="tryName">称呼<input id="tryName" maxlength="12" value="Miya" placeholder="留空"></label>
+          <label for="tryTime">时段<select id="tryTime"></select></label>
+          <label for="tryState">任务状态<select id="tryState"></select></label>
+          <label for="tryDay">特殊日子<select id="tryDay"></select></label>
+          <button class="btn-page" type="button" id="tryBtn">换一句</button>
+        </div>
+        <div class="spec-stage" style="justify-content:flex-start;min-height:0;padding:18px">
+          <div class="gprev mg" id="tryCard" style="--dot:#8b7cff;--amul:1;max-width:420px;width:100%"><span class="av-sm"></span><div><b id="tryOut">早上好，Miya 今天打算做点什么？</b><span id="trySub">今天 3 件 · 下一件 21:30 给妈妈回电话</span></div></div>
+        </div>
+        <p class="hint">占位符：<code>{name}</code> 称呼 · <code>{count}</code> 今天待办数 · <code>{overdue}</code> 逾期数 · <code>{next}</code> 下一件任务（超过 10 个字截断） · <code>{nexttime}</code> 下一件的时间 · <code>{weekday}</code> 星期几。</p>
+      </div>
+
+      <h3>内置文案池 · <span id="poolCount"></span></h3>
+      <div class="pool" id="pool"></div>
+
+      <div class="card"><h3 style="margin-bottom:8px">自定义问候</h3>
+        <ul class="clean">
+          <li>用户可以自己添加问候语（最多 50 句，每句 40 字以内），一样可以用上面的占位符。</li>
+          <li><b>文案来源</b>：“内置 + 自定义”（默认，自定义句子权重 ×2）或“只用自定义”（自定义为空时自动退回内置）。</li>
+          <li>保存在 <code>appearance.json</code> 的 <code>CustomGreetings</code> 里，界面见下面的设置窗口。</li>
+        </ul></div>
+    </section>
+
+    <!-- ================= SETTINGS WINDOW ================= -->
+    <section id="settingswin" aria-labelledby="h-settingswin">
+      <div class="sec-head">
+        <span class="eyebrow">设置窗口 · 来自 GPT 方案</span>
+        <h2 id="h-settingswin">独立的设置窗口</h2>
+        <p>展开的小岛只有 430 宽，设置越来越多会挤。v0.7 把完整设置放进单独的窗口：左侧导航、右侧分组。小岛里的“设置”页只保留常用开关和一个“完整设置”按钮。下面是“头像与问候”这一页，可以直接操作。</p>
+      </div>
+      <div class="spec-stage" style="padding:22px 16px">
+        <div class="setwin mg" id="setwin" style="--tint-rgb:16 15 22;--tint-a:.82;--amul:1;--ink:#fff;--ink2:rgb(255 255 255/.68);--ink3:rgb(255 255 255/.44);--lyric:#c7beff;--glow:.14;--sheen:.10;--shade:.18;--idark:.30;--l35:.22;--rim:.45;--sh1:rgb(0 0 0/.32);--sh2:rgb(0 0 0/.14);--lens:rgb(255 255 255/.14);--ctrl:rgb(255 255 255/.08);--ctrl-h:rgb(255 255 255/.13);--well:rgb(255 255 255/.06);--sep:rgb(255 255 255/.10);--tsh:none;--dot:#8b7cff;--pri-a:#8b7cff;--pri-b:#d884c0;--bad-a:#d74f74;--bad-b:#e0466f">
+          <nav aria-label="设置分类" role="tablist">
+            <div class="brand"><span class="ico" data-core="island"></span>Miya Island 设置</div>
+            <button type="button" role="tab" aria-selected="false" data-sp="general"><span class="ico" data-ico="settings"></span>常规</button>
+            <button type="button" role="tab" aria-selected="false" data-sp="look"><span class="ico" data-core="glass"></span>外观</button>
+            <button type="button" role="tab" aria-selected="true" data-sp="greet"><span class="ico" data-ico="bell"></span>头像与问候</button>
+            <button type="button" role="tab" aria-selected="false" data-sp="lyrics"><span class="ico" data-ico="lyrics"></span>悬浮歌词</button>
+            <button type="button" role="tab" aria-selected="false" data-sp="tasks"><span class="ico" data-ico="tasks"></span>任务</button>
+            <button type="button" role="tab" aria-selected="false" data-sp="adv"><span class="ico" data-ico="more"></span>高级</button>
+          </nav>
+          <div class="pane" data-spane="greet">
+            <h4>头像与问候</h4>
+            <div class="grpbox">
+              <div class="srow"><span>显示头像<small>关闭时小岛与原来一样，只显示呼吸灯</small></span><button class="sw" type="button" role="switch" aria-checked="true" id="swAv" aria-label="显示头像"></button></div>
+              <div class="srow" style="padding:10px 0"><span class="pair" style="gap:14px"><span class="av-big" id="avBig"></span><span style="display:grid;gap:6px"><span class="pair"><button class="mbtn" type="button" id="avPick"><span class="ico" data-ico="edit"></span>更换图片</button><button class="mbtn ghost" type="button" id="avReset">恢复默认</button></span>
+                <label style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink2)" for="avZoom">缩放<input type="range" id="avZoom" min="100" max="300" value="100" style="width:120px;accent-color:#8b7cff"></label></span></span><span></span></div>
+              <div class="srow"><span>呼吸灯样式<small>颜色和速度沿用“外观”里的指示灯设置</small></span><span class="pair" id="swAvs"><button class="mbtn" type="button" data-avs="ring" aria-pressed="true">光环</button><button class="mbtn ghost" type="button" data-avs="badge" aria-pressed="false">角标</button></span></div>
+            </div>
+            <div class="grpbox">
+              <div class="srow"><label for="swNick">我的称呼<small>留空时问候语不带称呼</small></label><input class="inp" id="swNick" maxlength="12" value="Miya" style="width:150px"></div>
+              <div class="srow"><span>启动问候<small>每次启动最多一次，间隔至少 4 小时</small></span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="启动问候"></button></div>
+              <div class="srow"><span>文案来源</span><span class="pair" id="swSrc"><button class="mbtn" type="button" aria-pressed="true">内置 + 自定义</button><button class="mbtn ghost" type="button" aria-pressed="false">只用自定义</button></span></div>
+            </div>
+            <div class="grpbox" style="padding:10px 14px;display:grid;gap:8px">
+              <span style="font-size:13px">自定义问候 <span style="color:var(--ink3);font-size:11.5px" id="cgCount"></span></span>
+              <div class="cg-list" id="cgList"></div>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px"><input class="inp" id="cgInput" maxlength="40" placeholder="写一句自己的问候，比如：{name}，今天也要开开心心的" aria-label="新的问候语"><button class="mbtn pri" type="button" id="cgAdd"><span class="ico" data-ico="add"></span>添加</button></div>
+              <div class="ph-chips" id="phChips" aria-label="插入占位符"></div>
+            </div>
+            <div class="pair" style="flex-wrap:wrap;gap:10px"><button class="mbtn" type="button" id="swTry">试一下</button><span style="font-size:13px;color:var(--ink2);min-width:0" id="swTryOut" aria-live="polite"></span></div>
+          </div>
+          <div class="pane" data-spane="other" hidden>
+            <h4 id="otherTitle">常规</h4>
+            <div class="grpbox" style="padding:12px 14px"><ul class="clean" id="otherList" style="font-size:13px"></ul></div>
+          </div>
+        </div>
+      </div>
+      <div class="card"><h3 style="margin-bottom:8px">窗口规格</h3>
+        <ul class="clean">
+          <li>760 × 520，Strong 玻璃（同一个 preset），可拖动，记住位置；同时只能开一个。</li>
+          <li>入口：小岛“设置”页的“完整设置”、托盘菜单、右键小岛。</li>
+          <li>改动立即生效并自动保存，和 v0.6.1 一样不需要点“保存”。</li>
+        </ul></div>
+    </section>
+
+    <!-- ================= FEATURES ================= -->
+    <section id="features" aria-labelledby="h-features">
+      <div class="sec-head">
+        <span class="eyebrow">功能设计</span>
+        <h2 id="h-features">歌词独立、位置、任务、自启、问候</h2>
+        <p>这几项会动到逻辑，所以把影响范围写清楚。原则不变：服务层能不动就不动，已有行为逐条保留。</p>
+      </div>
+
+      <h3>Floating Lyrics 独立出来</h3>
+      <pre class="mermaid">
+flowchart LR
+  App["App.xaml.cs<br/>托盘图标 · 窗口生命周期"] --> Music["MusicSession<br/>MediaService + LyricService<br/>500ms 轮询 · 当前行"]
+  App --> Tasks["TaskService<br/>tasks.json"]
+  App --> Settings["AppearanceSettingsService"]
+  Music -- 状态事件 --> Island["IslandWindow<br/>(MainWindow)"]
+  Music -- 状态事件 --> Lyrics["FloatingLyricsWindow"]
+  Tasks -- 到点 / 数量 --> Island
+      </pre>
+      <div class="grid2">
+        <div class="card"><h3 style="margin-bottom:8px">怎么做</h3>
+          <ul class="clean">
+            <li>新建 <code>MusicSession</code>：把 <code>MainWindow.RefreshMediaAsync</code> 里的轮询、换歌、歌词匹配原样搬过去，对外发“曲目变化 / 播放状态 / 当前行 / 下一行”事件。<b>这是本次唯一一处较大的逻辑搬迁</b>，服务类本身不改。</li>
+            <li><code>App.xaml</code> 去掉 <code>StartupUri</code>，<code>ShutdownMode=OnExplicitShutdown</code>，由 App 创建两个窗口和托盘图标。</li>
+            <li><code>FloatingLyricsWindow</code> 去掉 <code>Owner = this</code>，生命周期不再跟主岛绑定。</li>
+            <li>托盘菜单：显示灵动岛 / 显示悬浮歌词 / 设置 / 开机自启动 / 退出。</li>
+          </ul></div>
+        <div class="card"><h3 style="margin-bottom:8px">三种组合</h3>
+          <ul class="clean">
+            <li><b>只开 Island</b>：v0.6.1 的默认样子。</li>
+            <li><b>只开 Lyrics</b>：关闭（隐藏）主岛，歌词继续，托盘图标常驻用来找回。</li>
+            <li><b>两个一起开</b>：主岛显示待机标题，与 v0.6.1 现有逻辑一致。</li>
+            <li>新增 <code>ShowIsland</code>、<code>ShowLyrics</code> 两个设置，启动时恢复上次的组合。</li>
+            <li>“退出”才真正结束程序；关闭任一窗口只是隐藏。</li>
+          </ul></div>
+      </div>
+
+      <h3>位置体验</h3>
+      <div class="card">
+        <ul class="clean">
+          <li><b>默认居中</b>：保留 <code>CenterAtTop</code>，“重新居中”按钮保留。</li>
+          <li><b>轻微中心吸附</b>：<b>只在松开鼠标时</b>判断。水平中心离屏幕中心 16 DIP 以内、或顶部离默认位置 10 DIP 以内，就用 160ms 滑过去；拖动过程中不吸，不做强制磁吸。按住 Alt 松开可跳过吸附。</li>
+          <li><b>自由拖动</b>和<b>锁定</b>：行为不变。</li>
+          <li><b>记住位置</b>：新增 <code>IslandLeft/IslandTop</code> + 显示器名称 + DPI；启动时检查那块屏幕还在、窗口至少露出 80px，否则回到默认居中。悬浮歌词同样规则，吸附点是水平中心和默认底部位置。</li>
+        </ul>
+      </div>
+
+      <h3>删掉 Desktop Pet</h3>
+      <div class="card">
+        <ul class="clean">
+          <li>删除：<code>PetWindow.xaml(.cs)</code>、<code>Models/PetState.cs</code>、<code>Services/PetStateService.cs</code>、<code>Assets/MiyaPet.png</code>、csproj 里的 Resource、<code>PetPanel</code> 与“♛”入口、<code>MainWindow</code> 里所有 <code>_petWindow</code> 相关代码。</li>
+          <li>用户电脑上已有的 <code>pet.json</code> 不删，只是不再读取。</li>
+        </ul>
+      </div>
+
+      <h3>Tasks &amp; Reminders</h3>
+      <div class="grid2">
+        <div class="card"><h3 style="margin-bottom:8px">第一版功能</h3>
+          <ul class="clean">
+            <li><b>添加任务</b>：输入框 + 回车；可选提醒时间。</li>
+            <li><b>勾选完成</b>：圆形勾选；已完成的任务折叠到“已完成”，可一键清除。</li>
+            <li><b>一次性提醒</b>、<b>每日重复</b>、<b>指定星期重复</b>：时间弹层里选“不重复 / 每天 / 每周”，每周可多选 一 ~ 日。</li>
+            <li><b>到点</b>：小岛变形成提醒卡（预览里点“提醒到点”）：完成 / 延后（10 分钟、30 分钟、1 小时、明天同一时间）/ 忽略。</li>
+            <li><b>忽略</b>只跳过这一次提醒，任务仍然未完成；重复任务完成后自动算出下一次。</li>
+            <li>不做日历视图。tab 从 6 个变 5 个：音乐 / 任务 / 下载 / J-Space / 设置。</li>
+          </ul></div>
+        <div class="card"><h3 style="margin-bottom:8px">数据不能丢</h3>
+          <ul class="clean">
+            <li>存到 <code>%LocalAppData%\MiyaIsland\tasks.json</code>，带 <code>version</code>。</li>
+            <li><b>原子写入</b>：先写临时文件，再 <code>File.Replace</code> 并保留 <code>tasks.json.bak</code>；读取失败自动用备份。</li>
+            <li><b>迁移</b>：第一次启动时，如果有 <code>reminders.json</code> 而没有 <code>tasks.json</code>，把旧提醒转成一次性任务，原文件改名为 <code>reminders.v06.bak.json</code>。</li>
+            <li><b>错过的提醒</b>：程序关着时到点的一次性提醒，启动后标为“已过期”并计入问候，不会一次弹一串；重复任务直接跳到下一次。</li>
+          </ul></div>
+      </div>
+      <pre class="code">{
+  "version": 1,
+  "tasks": [
+    {
+      "id": "8f1c…",
+      "title": "给妈妈回电话",
+      "done": false,
+      "createdAt": "2026-10-04T09:12:00+08:00",
+      "completedAt": null,
+      "remind": { "at": "21:30", "date": null, "repeat": "weekly", "weekdays": [1, 3, 5] },
+      "snoozedUntil": null,
+      "lastFiredFor": "2026-10-03T21:30:00+08:00"
+    }
+  ]
+}</pre>
+
+      <div class="grid2">
+        <div class="card"><h3 style="margin-bottom:8px">开机自启动</h3>
+          <ul class="clean">
+            <li>设置和托盘菜单里各一个开关，<b>默认关闭</b>。</li>
+            <li>写 <code>HKCU\Software\Microsoft\Windows\CurrentVersion\Run</code>，值为 <code>"…\MiyaIsland.exe" --autostart</code>，不需要管理员权限。</li>
+            <li>开关状态每次都从注册表读，不信任 json；如果程序被移动、路径变了，显示“路径已变化，点击修复”。</li>
+            <li>自启时按上次的 <code>ShowIsland / ShowLyrics</code> 恢复，以后可以再拆成两个独立开关。</li>
+            <li>注意：从 Visual Studio 调试运行时开启，会登记调试目录里的 exe，发布版需要重新开一次。</li>
+          </ul></div>
+        <div class="card"><h3 style="margin-bottom:8px">启动问候</h3>
+          <ul class="clean">
+            <li>完整规则、称呼、文案池和自定义问候见上面的<a href="#avatar">头像与问候</a>。</li>
+            <li>形式：小岛变形成问候卡（头像 + 问候 + 一行任务摘要），底部细线倒计时 6 秒后收回，<b>不弹窗</b>。</li>
+          </ul></div>
+      </div>
+    </section>
+
+    <!-- ================= SCOPE ================= -->
+    <section id="scope" aria-labelledby="h-scope">
+      <div class="sec-head">
+        <span class="eyebrow">范围</span>
+        <h2 id="h-scope">v0.7 暂时不做</h2>
+      </div>
+      <div class="card">
+        <ul class="clean" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+          <li>GPT / Claude API</li><li>AI Inbox</li><li>AI 自然语言任务</li><li>Quick Capture</li>
+          <li>Focus Mode</li><li>Notification History</li><li>专辑封面动态 tint</li>
+          <li>呼吸灯状态变色</li><li>打包中文字体</li><li>日历视图</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ================= CONFIRM ================= -->
+    <section id="confirm" aria-labelledby="h-confirm">
+      <div class="sec-head">
+        <span class="eyebrow">待确认</span>
+        <h2 id="h-confirm">开始写代码之前需要你们拍板</h2>
+      </div>
+      <div class="tablebox"><table>
+        <thead><tr><th>问题</th><th>建议</th></tr></thead>
+        <tbody>
+          <tr><td>Compact Mode 用 A 小圆还是 B 小胶囊？</td><td>B（同形变形最顺，保留一点状态）</td></tr>
+          <tr><td>默认 preset</td><td>Midnight（最接近 v0.6.1）</td></tr>
+          <tr><td>主色渐变 #8B7CFF → #D884C0（紫 → 粉，和 Thor 同方向）</td><td>采用</td></tr>
+          <tr><td>Tab：音乐 / 任务 / 下载 / J-Space / 设置</td><td>采用</td></tr>
+          <tr><td>悬浮歌词“更多”菜单的内容</td><td>按上文</td></tr>
+          <tr><td>为了让歌词独立，把媒体轮询从 MainWindow 搬到 <code>MusicSession</code></td><td>需要，这是唯一较大的逻辑搬迁</td></tr>
+          <tr><td>问候文案的语气</td><td>温柔、简短，不用感叹号堆叠（见文案池）</td></tr>
+          <tr><td>头像默认关闭；开启后呼吸灯默认显示为光环</td><td>采用</td></tr>
+          <tr><td>默认头像用 <code>MiyaPet.png</code> 裁出来的脸</td><td>采用，也可以换成你另外给的图</td></tr>
+          <tr><td>独立设置窗口，小岛里只留常用开关</td><td>采用</td></tr>
+          <tr><td>悬浮歌词默认显示专辑封面</td><td>采用，可在“更多”里关闭</td></tr>
+        </tbody>
+      </table></div>
+      <div class="card"><h3 style="margin-bottom:8px">确认后的实现顺序</h3>
+        <ul class="clean">
+          <li><b>1</b> Tokens、字体、图标：只换外观，行为不变。</li>
+          <li><b>2</b> 控件样式（按钮、下拉、开关、滑块、输入框、进度、滚动条、ToolTip）。</li>
+          <li><b>3</b> 玻璃外壳 + 固定画布 + MorphProgress 动画（高风险，单独提交，专门回归位置和锁定）。</li>
+          <li><b>4</b> Compact Mode + 位置吸附与记忆。</li>
+          <li><b>5</b> MusicSession + Floating Lyrics 新布局与独立 + 托盘。</li>
+          <li><b>6</b> 删除桌宠 + Tasks &amp; Reminders + 数据迁移。</li>
+          <li><b>7</b> 独立设置窗口、头像、称呼与问候（含自定义问候）、开机自启、真实模糊实验开关。</li>
+          <li><b>8</b> 版本号 0.7.0、README、《先看这里》。每一步都需要在 Windows 上实际运行确认。</li>
+        </ul></div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ================= icons (24 grid, stroke 1.6, round) ================= */
+  function gear() {
+    var cx = 12, cy = 12, n = 8, ro = 9.3, ri = 7.1, pts = [];
+    for (var i = 0; i < n; i++) {
+      var a = i * 2 * Math.PI / n;
+      [[-0.36, ri], [-0.2, ro], [0.2, ro], [0.36, ri]].forEach(function (p) {
+        pts.push((cx + Math.cos(a + p[0]) * p[1]).toFixed(2) + " " + (cy + Math.sin(a + p[0]) * p[1]).toFixed(2));
+      });
+    }
+    return '<path d="M' + pts.join(" L") + 'Z"/><circle cx="12" cy="12" r="3"/>';
+  }
+  var A = 'currentColor';
+  var ICONS = {
+    settings: { n: "设置", d: gear() },
+    lyrics: { n: "歌词", d: '<path d="M4 7.5h9M4 12h7M4 16.5h5"/><path d="M18 5.5v9.2"/><circle cx="16" cy="15.6" r="2.1"/><path d="M18 5.5l2.6 1.1"/>' },
+    tasks: { n: "任务", d: '<rect x="4" y="4" width="16" height="16" rx="4.5"/><path d="M8.3 12.2l2.6 2.6 4.9-5.3"/>' },
+    bell: { n: "提醒", d: '<path d="M6.2 16.5V11a5.8 5.8 0 0 1 11.6 0v5.5l1.4 1.8H4.8z"/><path d="M10 20.3a2.1 2.1 0 0 0 4 0"/>' },
+    lock: { n: "锁定", d: '<rect x="5" y="10.5" width="14" height="9.5" rx="3"/><path d="M8.3 10.5V8a3.7 3.7 0 0 1 7.4 0v2.5"/><path d="M12 14.4v1.8"/>' },
+    unlock: { n: "解锁", d: '<rect x="5" y="10.5" width="14" height="9.5" rx="3"/><path d="M8.3 10.5V8a3.7 3.7 0 0 1 7-1.7"/><path d="M12 14.4v1.8"/>' },
+    play: { n: "播放", d: '<path d="M8.2 6.1v11.8a1.1 1.1 0 0 0 1.7.94l9.3-5.9a1.1 1.1 0 0 0 0-1.88L9.9 5.16a1.1 1.1 0 0 0-1.7.94z"/>' },
+    pause: { n: "暂停", d: '<rect x="7" y="5.5" width="3.4" height="13" rx="1.4"/><rect x="13.6" y="5.5" width="3.4" height="13" rx="1.4"/>' },
+    back: { n: "返回", d: '<path d="M14.5 6l-6 6 6 6"/>' },
+    add: { n: "添加", d: '<path d="M12 5.5v13M5.5 12h13"/>' },
+    trash: { n: "删除", d: '<path d="M4.8 7.2h14.4"/><path d="M9.6 7.2V5.6c0-.7.5-1.2 1.2-1.2h2.4c.7 0 1.2.5 1.2 1.2v1.6"/><path d="M6.8 7.2l.8 11a2 2 0 0 0 2 1.8h4.8a2 2 0 0 0 2-1.8l.8-11"/><path d="M10.3 11v5M13.7 11v5"/>' },
+    edit: { n: "编辑", d: '<path d="M4.5 19.5l.6-3.6 10-10a2.1 2.1 0 0 1 3 3l-10 10z"/><path d="M13.6 7l3.4 3.4"/>' },
+    more: { n: "更多", d: '<circle cx="6" cy="12" r="1.15" fill="currentColor"/><circle cx="12" cy="12" r="1.15" fill="currentColor"/><circle cx="18" cy="12" r="1.15" fill="currentColor"/>' },
+    close: { n: "关闭", d: '<path d="M6.8 6.8l10.4 10.4M17.2 6.8L6.8 17.2"/>' },
+    minimize: { n: "最小化", d: '<path d="M6 12.5h12"/>' },
+    music: { n: "音乐", d: '<path d="M9 17.6V6.4l10-2v11.2"/><circle cx="6.6" cy="17.6" r="2.4"/><circle cx="16.6" cy="15.6" r="2.4"/><path d="M9 9.6l10-2"/>' },
+    download: { n: "下载", d: '<path d="M12 4.5v10.5"/><path d="M7.6 10.8l4.4 4.4 4.4-4.4"/><path d="M5 19.5h14"/>' },
+    jspace: { n: "J-Space", d: '<circle cx="12" cy="12" r="8.2"/><path d="M14.3 8v5.2a2.6 2.6 0 0 1-5 1"/><path d="M18.4 5.6l.5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5z" stroke-width="1.1"/>' },
+    prev: { n: "上一首", d: '<path d="M6.5 6v12"/><path d="M18 6.9v10.2a.9.9 0 0 1-1.4.75L9.4 12.75a.9.9 0 0 1 0-1.5l7.2-4.85a.9.9 0 0 1 1.4.5z"/>' },
+    next: { n: "下一首", d: '<path d="M17.5 6v12"/><path d="M6 6.9v10.2a.9.9 0 0 0 1.4.75l7.2-5.1a.9.9 0 0 0 0-1.5L7.4 6.4a.9.9 0 0 0-1.4.5z"/>' },
+    volume: { n: "音量", d: '<path d="M4.5 9.6v4.8h3.2l4.6 3.8V5.8L7.7 9.6z"/><path d="M15.6 9.2a4 4 0 0 1 0 5.6"/><path d="M18.1 6.8a7.4 7.4 0 0 1 0 10.4"/>' },
+    chevronDown: { n: "展开", d: '<path d="M6.5 9.5l5.5 5.5 5.5-5.5"/>' },
+    chevronUp: { n: "收起", d: '<path d="M6.5 14.5L12 9l5.5 5.5"/>' },
+    check: { n: "完成", d: '<path d="M5.5 12.5l4.2 4.2 8.8-9"/>' },
+    snooze: { n: "延后", d: '<circle cx="12" cy="13" r="7"/><path d="M12 9.5V13l2.4 1.6"/><path d="M5 5.5l2.4-1.8M19 5.5l-2.4-1.8"/>' },
+    repeat: { n: "重复", d: '<path d="M16.5 4.5l3 3-3 3"/><path d="M4.5 11V10a2.5 2.5 0 0 1 2.5-2.5h12.5"/><path d="M7.5 19.5l-3-3 3-3"/><path d="M19.5 13v1a2.5 2.5 0 0 1-2.5 2.5H4.5"/>' },
+    search: { n: "搜索", d: '<circle cx="11" cy="11" r="6"/><path d="M15.5 15.5L19.5 19.5"/>' },
+    lines2: { n: "单双行", d: '<path d="M5 9h14"/><path d="M7.5 15h9" opacity=".6"/>' }
+  };
+  var CORE = {
+    island: { n: "Miya Island", p: "品牌标：胶囊 + 呼吸灯。用在托盘、关于页和 exe 图标。", d: '<rect x="2.6" y="7.6" width="18.8" height="8.8" rx="4.4"/><circle cx="7.2" cy="12" r="1.9" fill="#8b7cff" stroke="none"/><path d="M11 12h6.4" opacity=".55"/>' },
+    glass: { n: "Liquid Glass", p: "水滴 + 左下高光弧，用在玻璃风格设置和 preset 菜单。", d: '<path d="M12 3.6c3.6 4.3 6.1 7.5 6.1 10.4a6.1 6.1 0 0 1-12.2 0c0-2.9 2.5-6.1 6.1-10.4z" fill="rgb(139 124 255 / .22)"/><path d="M9.1 14.6a3 3 0 0 0 2.3 2.7" opacity=".85"/>' },
+    fly: { n: "Floating Lyrics", p: "底部的歌词胶囊 + 上方飘起的音符，用在悬浮歌词按钮和托盘菜单。", d: '<rect x="3" y="13" width="18" height="7" rx="3.5"/><path d="M7.5 16.5h9" opacity=".55"/><path d="M13.6 3.8v5.4"/><circle cx="12.1" cy="9.4" r="1.6" fill="#8b7cff" stroke="none"/><path d="M13.6 3.8l2.4 1"/>' },
+    tasks: { n: "Tasks", p: "双色圆角方框 + 对勾，用在任务 tab、提醒卡和问候。", d: '<rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5" fill="rgb(139 124 255 / .22)"/><path d="M8.2 12.3l2.7 2.7 5.1-5.6"/>' }
+  };
+  function svg(d, sw) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (sw || 1.6) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + "</svg>";
+  }
+  document.querySelectorAll("[data-ico]").forEach(function (el) {
+    var k = el.getAttribute("data-ico"); if (ICONS[k]) el.innerHTML = svg(ICONS[k].d);
+  });
+  var keys = ["settings", "lyrics", "tasks", "bell", "lock", "unlock", "play", "pause", "back", "add", "trash", "edit", "more", "close", "minimize",
+    "music", "download", "jspace", "prev", "next", "volume", "chevronDown", "chevronUp", "check", "snooze", "repeat", "search", "lines2"];
+  var base15 = { settings: 1, lyrics: 1, tasks: 1, bell: 1, lock: 1, unlock: 1, play: 1, pause: 1, back: 1, add: 1, trash: 1, edit: 1, more: 1, close: 1, minimize: 1 };
+  document.getElementById("iconGrid").innerHTML = keys.map(function (k) {
+    return '<div class="icon-cell"><span class="ico">' + svg(ICONS[k].d) + "</span><b>" + ICONS[k].n + "</b><code>" + k + (base15[k] ? "" : " · 产品") + "</code></div>";
+  }).join("");
+  document.getElementById("iconSizes").innerHTML = [16, 18, 20, 24, 32].map(function (s) {
+    return '<span style="display:grid;justify-items:center;gap:4px"><span class="ico" style="width:' + s + "px;height:" + s + 'px">' + svg(ICONS.tasks.d, (1.5 * 24 / s).toFixed(2)) +
+      '</span><span class="num muted">' + s + "</span></span>";
+  }).join("") + [16, 20, 24].map(function (s) {
+    return '<span style="display:grid;justify-items:center;gap:4px"><span class="ico" style="width:' + s + "px;height:" + s + 'px">' + svg(ICONS.bell.d, (1.5 * 24 / s).toFixed(2)) +
+      '</span><span class="num muted">' + s + "</span></span>";
+  }).join("");
+  document.getElementById("coreGrid").innerHTML = Object.keys(CORE).map(function (k) {
+    var c = CORE[k];
+    return '<div class="core-cell"><div class="row"><span class="tile"><span class="ico">' + svg(c.d) + '</span></span><span class="ico" style="width:24px;height:24px">' + svg(c.d) +
+      '</span><span class="ico" style="width:16px;height:16px">' + svg(c.d, 2.2) + "</span></div><b>" + c.n + "</b><p>" + c.p + "</p></div>";
+  }).join("");
+
+  document.querySelectorAll("[data-core]").forEach(function (el) { var c = CORE[el.getAttribute("data-core")]; if (c) el.innerHTML = svg(c.d); });
+  var AV_DEFAULT = 'url("data:image/png;base64,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")';
+  function setAvImg(v) { document.documentElement.style.setProperty("--av-img", v); }
+  setAvImg(AV_DEFAULT);
+
+  /* ================= presets ================= */
+  var LIGHT = { warnc: "#9a5b12", ink: "#2a2230", ink2: "rgb(42 34 48 / .66)", ink3: "rgb(42 34 48 / .44)", lyric: "#5b47c9", glow: .55, sheen: .32, shade: .05, idark: .06, l35: .55, rim: .72,
+    lens: "rgb(255 255 255 / .55)", ctrl: "rgb(255 255 255 / .50)", ctrlh: "rgb(255 255 255 / .68)", well: "rgb(255 255 255 / .40)", sep: "rgb(40 20 60 / .10)", tsh: "none", badc: "#b5375c" };
+  var DARK = { warnc: "#f0b878", ink: "#ffffff", ink2: "rgb(255 255 255 / .68)", ink3: "rgb(255 255 255 / .44)", lyric: "#c7beff", glow: .14, sheen: .10, shade: .18, idark: .30, l35: .22, rim: .45,
+    lens: "rgb(255 255 255 / .14)", ctrl: "rgb(255 255 255 / .08)", ctrlh: "rgb(255 255 255 / .13)", well: "rgb(255 255 255 / .06)", sep: "rgb(255 255 255 / .10)", tsh: "none", badc: "#ff8fae" };
+  var PRESETS = {
+    milk: { n: "Milk", rgb: [248, 245, 250], a: .76, fam: LIGHT, sh: ["rgb(90 60 120 / .18)", "rgb(90 60 120 / .10)"], use: "浅色壁纸、白天；最干净" },
+    rose: { n: "Rose", rgb: [247, 218, 230], a: .74, fam: LIGHT, sh: ["rgb(150 50 100 / .18)", "rgb(150 50 100 / .10)"], use: "粉色系壁纸；最温柔" },
+    lavender: { n: "Lavender", rgb: [228, 220, 255], a: .74, fam: LIGHT, sh: ["rgb(90 60 170 / .20)", "rgb(90 60 170 / .10)"], use: "与呼吸灯同色系；最“Miya”" },
+    midnight: { n: "Midnight", rgb: [16, 15, 22], a: .74, fam: DARK, sh: ["rgb(0 0 0 / .32)", "rgb(0 0 0 / .14)"], use: "默认；任何背景都清楚" },
+    clear: { n: "Clear Glass", rgb: [255, 255, 255], a: .10, fam: Object.assign({}, DARK, { glow: .30, sheen: .18, shade: .10, idark: .12, l35: .40, rim: .62, tsh: "0 1px 2px rgb(0 0 0 / .45)", lens: "rgb(255 255 255 / .22)", ctrl: "rgb(255 255 255 / .14)", ctrlh: "rgb(255 255 255 / .22)", well: "rgb(255 255 255 / .10)", sep: "rgb(255 255 255 / .18)" }),
+      sh: ["rgb(0 0 0 / .22)", "rgb(0 0 0 / .10)"], use: "深色或简洁背景；建议配合真实模糊", clear: true }
+  };
+  function applyTokens(el, p) {
+    var f = p.fam, s = el.style;
+    s.setProperty("--tint-rgb", p.rgb.join(" ")); s.setProperty("--tint-a", p.a);
+    s.setProperty("--ink", f.ink); s.setProperty("--ink2", f.ink2); s.setProperty("--ink3", f.ink3); s.setProperty("--lyric", f.lyric);
+    ["glow", "sheen", "shade", "idark", "l35", "rim"].forEach(function (k) { s.setProperty("--" + k, f[k]); });
+    s.setProperty("--lens", f.lens); s.setProperty("--ctrl", f.ctrl); s.setProperty("--ctrl-h", f.ctrlh); s.setProperty("--well", f.well); s.setProperty("--sep", f.sep);
+    s.setProperty("--warnc", f.warnc || "#f0b878"); s.setProperty("--tsh", f.tsh); s.setProperty("--badc", f.badc); s.setProperty("--sh1", p.sh[0]); s.setProperty("--sh2", p.sh[1]);
+  }
+
+  /* preset specimens + table */
+  function specimens(id) {
+    var box = document.getElementById(id);
+    box.innerHTML = Object.keys(PRESETS).map(function (k) {
+      return '<div class="preset-pill mg" data-p="' + k + '" style="--dot:#8b7cff;--amul:1"><span class="pd"></span>' + PRESETS[k].n + "<small>21:30</small></div>";
+    }).join("");
+    box.querySelectorAll(".preset-pill").forEach(function (el) { applyTokens(el, PRESETS[el.getAttribute("data-p")]); });
+  }
+  specimens("presetStageDark"); specimens("presetStageLight");
+  document.querySelector("#presetTable tbody").innerHTML = Object.keys(PRESETS).map(function (k) {
+    var p = PRESETS[k], light = p.fam === LIGHT;
+    return "<tr><td><b>" + p.n + "</b></td><td><span class=\"swatch\" style=\"display:inline-block;vertical-align:middle;background:rgb(" + p.rgb.join(",") + ")\"></span> <span class=\"num\">rgb(" + p.rgb.join(", ") + ")</span></td>" +
+      '<td class="num">' + Math.round(p.a * 100) + '%</td><td class="num">' + Math.round(p.a * (p.clear ? 1 : .55) * 100) + "%</td><td>" + (light ? "深紫墨 #2A2230" : "白") + (p.clear ? " + 1px 投影" : "") +
+      '</td><td class="num">Rim ' + Math.round(p.fam.rim * 100) + "% · 光晕 " + Math.round(p.fam.glow * 100) + "%</td><td>" + (light ? "紫色调" : "黑色") + "</td><td>" + p.use + "</td></tr>";
+  }).join("");
+
+  /* GlassPolicy table */
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  document.querySelector("#policyTable tbody").innerHTML = [["Compact B", 30], ["小岛收起", 42], ["悬浮歌词 单行", 44], ["悬浮歌词 双行", 76], ["提醒卡", 136], ["展开小岛", 352], ["控件（L3）", 30], ["透镜（L2）", 32]].map(function (r) {
+    var h = r[1];
+    return "<tr><td>" + r[0] + '</td><td class="num">' + h + '</td><td class="num">' + clamp(.2 * h, 6, 22).toFixed(1) + '</td><td class="num">' + clamp(h / 80, .6, 1.4).toFixed(2) +
+      '</td><td class="num">' + clamp(.07 * h, 3, 16).toFixed(1) + "</td></tr>";
+  }).join("");
+
+  /* motion timelines, drawn to scale on a 0–400 ms axis */
+  function timeline(id, rows) {
+    var html = '<div class="tl-axis"><span></span><div><span>0</span><span>100</span><span>200</span><span>300</span><span>400 ms</span></div></div>';
+    html += rows.map(function (r) {
+      return '<div class="tl-row"><span>' + r[0] + '</span><div class="tl-track"><i class="tl-bar ' + (r[3] || "") + '" style="left:' + (r[1] / 4) + "%;width:" + ((r[2] - r[1]) / 4) + '%" title="' + r[1] + "–" + r[2] + ' ms"></i></div></div>';
+    }).join("");
+    document.getElementById(id).innerHTML = html;
+  }
+  timeline("tlExpand", [["尺寸 + 圆角 · spring", 0, 340], ["阴影 E2 → E3", 0, 340], ["收起文字淡出", 0, 100, "warn"], ["顶栏淡入 + 上移 4px", 120, 300, "alt"], ["Tab 淡入", 140, 320, "alt"], ["面板淡入", 160, 340, "alt"], ["边缘散射闪一下", 0, 400, "warn"]]);
+  timeline("tlCollapse", [["面板、顶栏淡出", 0, 100, "warn"], ["尺寸 + 圆角 · in-out", 0, 260], ["阴影 E3 → E2", 0, 260], ["收起文字淡入", 120, 300, "alt"]]);
+
+  /* ================= scene ================= */
+  var scene = document.getElementById("scene"), box = document.getElementById("sceneBox");
+  function fit() { var s = box.clientWidth / 1000; scene.style.transform = "scale(" + s + ")"; scene._s = s; }
+  fit();
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(box); else window.addEventListener("resize", fit);
+
+  /* busy wallpaper text */
+  var code = [
+    '<span class="kw">private</span> <span class="kw">void</span> Expand()', "{", "    <span class=\"kw\">if</span> (_expanded) <span class=\"kw\">return</span>;", "    _expanded = <span class=\"kw\">true</span>;",
+    "    AnimateSize(ExpandedWidth, ExpandedHeight);", '    <span class="cm">// v0.7: one MorphProgress drives size, radius, shadow, opacity</span>', "    ExpandedContent.BeginAnimation(OpacityProperty, ...);", "}", "",
+    '<span class="kw">private</span> <span class="kw">async</span> Task RefreshMediaAsync()', "{", "    <span class=\"kw\">var</span> snapshot = <span class=\"kw\">await</span> _media.GetCurrentAsync();",
+    "    SongTitle.Text = snapshot.Title;", "    SongArtist.Text = snapshot.Artist;", '    PlayButton.Content = snapshot.IsPlaying ? <span class="st">"Ⅱ"</span> : <span class="st">"▶"</span>;',
+    '    PlaybackTimeText.Text = <span class="st">$"{FormatTime(snapshot.Position)} / ..."</span>;', "", "    <span class=\"kw\">if</span> (!snapshot.HasSession)", "    {",
+    "        CompactText.Text = _appearance.Title;", '        CurrentLyricText.Text = <span class="st">"播放音乐后自动匹配歌词"</span>;', "        <span class=\"kw\">return</span>;", "    }", "}"
+  ];
+  document.getElementById("fakewin").innerHTML = code.concat(code).join("\n");
+
+  var island = document.getElementById("island");
+  var ORDER = { compactA: 0, compactB: 1, normal: 2, greet: 2.5, remind: 3, expanded: 4 };
+  var current = "normal", compactKind = "compactB";
+  function setState(st) {
+    if (st === current) return;
+    island.setAttribute("data-dir", ORDER[st] < ORDER[current] ? "down" : "up");
+    current = st; island.setAttribute("data-state", st);
+    if (st !== "greet") clearTimeout(greetTimer);
+    if (st === "expanded" || st === "remind" || st === "greet") { island.classList.add("flash"); setTimeout(function () { island.classList.remove("flash"); }, 450 * tm()); }
+    if (st === "expanded") requestAnimationFrame(placeLens);
+    closePops();
+    var r = document.querySelector('#g-state input[value="' + st + '"]'); if (r) r.checked = true;
+  }
+  function tm() { return parseFloat(getComputedStyle(scene).getPropertyValue("--tm")) || 1; }
+  island.addEventListener("click", function (e) {
+    if (current === "normal" || current === "compactA" || current === "compactB") { setState("expanded"); e.stopPropagation(); }
+  });
+  island.addEventListener("keydown", function (e) {
+    if ((e.key === "Enter" || e.key === " ") && e.target === island && current !== "expanded") { e.preventDefault(); setState("expanded"); }
+    if (e.key === "Escape" && current === "expanded") setState("normal");
+  });
+  document.getElementById("collapseBtn").addEventListener("click", function (e) { e.stopPropagation(); setState("normal"); });
+  document.getElementById("miniBtn").addEventListener("click", function (e) { e.stopPropagation(); setState(compactKind); });
+  var locked = false;
+  document.getElementById("lockBtn").addEventListener("click", function (e) {
+    e.stopPropagation(); locked = !locked;
+    this.innerHTML = '<span class="ico">' + svg(ICONS[locked ? "lock" : "unlock"].d) + "</span>";
+    this.setAttribute("aria-label", locked ? "解锁位置" : "锁定位置"); this.title = locked ? "解锁位置" : "锁定位置";
+  });
+  var playing = true;
+  document.getElementById("playBtn").addEventListener("click", function (e) {
+    e.stopPropagation(); playing = !playing;
+    this.innerHTML = '<span class="ico">' + svg(ICONS[playing ? "pause" : "play"].d) + "</span>"; this.setAttribute("aria-label", playing ? "暂停" : "播放");
+  });
+
+  /* tabs + lens */
+  var tabs = Array.prototype.slice.call(island.querySelectorAll(".tab")), lens = document.getElementById("lens");
+  function placeLens() {
+    var sel = tabs.filter(function (t) { return t.getAttribute("aria-selected") === "true"; })[0]; if (!sel) return;
+    lens.style.width = sel.offsetWidth + "px"; lens.style.transform = "translateX(" + sel.offsetLeft + "px)";
+  }
+  function selectTab(t) {
+    tabs.forEach(function (x) { x.setAttribute("aria-selected", x === t ? "true" : "false"); x.tabIndex = x === t ? 0 : -1; });
+    island.querySelectorAll(".panel").forEach(function (p) { p.hidden = p.getAttribute("data-panel") !== t.getAttribute("data-tab"); });
+    placeLens(); closePops();
+  }
+  tabs.forEach(function (t, i) {
+    t.tabIndex = i === 0 ? 0 : -1;
+    t.addEventListener("click", function (e) { e.stopPropagation(); selectTab(t); });
+    t.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") { var n = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length]; selectTab(n); n.focus(); e.preventDefault(); }
+    });
+  });
+  placeLens();
+
+  /* sliders */
+  island.querySelectorAll(".slider").forEach(function (sl) {
+    function set(v) { v = clamp(v, 0, 100); sl.querySelector(".fill").style.width = v + "%"; sl.querySelector(".th").style.left = v + "%"; var t = sl.parentNode.querySelector(".v"); if (t) t.textContent = Math.round(v) + "%"; }
+    set(parseFloat(sl.getAttribute("data-val")));
+    sl.addEventListener("pointerdown", function (e) {
+      e.stopPropagation();
+      function mv(ev) { var r = sl.getBoundingClientRect(); set((ev.clientX - r.left) / r.width * 100); }
+      mv(e); sl.setPointerCapture(e.pointerId);
+      sl.onpointermove = mv; sl.onpointerup = function () { sl.onpointermove = null; };
+    });
+  });
+
+  /* switches */
+  scene.querySelectorAll(".sw").forEach(function (sw) {
+    sw.addEventListener("click", function (e) {
+      e.stopPropagation(); var on = sw.getAttribute("aria-checked") !== "true"; sw.setAttribute("aria-checked", on ? "true" : "false");
+      if (sw.id === "swBlur") setBlur(on);
+    });
+  });
+
+  /* tasks */
+  var TASKS = [
+    { t: "给妈妈回电话", m: "每天 21:30", i: "repeat" },
+    { t: "交房租", m: "已过期 · 昨天", i: "bell", over: true },
+    { t: "健身", m: "一 三 五 19:00", i: "repeat" },
+    { t: "整理 v0.7 的截图", m: "今天 23:00", i: "bell", soon: true },
+    { t: "买猫粮", m: "", i: "", done: true }
+  ];
+  var tl = document.getElementById("tlist");
+  tl.innerHTML = TASKS.map(function (k, i) {
+    return '<div class="trow' + (k.done ? " done" : "") + '"><button class="chk" type="button" role="checkbox" aria-checked="' + (k.done ? "true" : "false") + '" aria-label="完成：' + k.t + '">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 12.5l4.2 4.2 8.8-9"/></svg></button>' +
+      '<span class="t">' + k.t + "</span>" + (k.m ? '<span class="tmeta' + (k.over ? " over" : k.soon ? " soon" : "") + '"><span class="ico">' + svg(ICONS[k.i].d) + "</span>" + k.m + "</span>" : "<span></span>") +
+      '<button class="ib" type="button" aria-label="更多：' + k.t + '"><span class="ico">' + svg(ICONS.more.d) + "</span></button></div>";
+  }).join("");
+  tl.querySelectorAll(".chk").forEach(function (c) {
+    c.addEventListener("click", function (e) { e.stopPropagation(); var row = c.parentNode, on = !row.classList.contains("done"); row.classList.toggle("done", on); c.setAttribute("aria-checked", on ? "true" : "false"); });
+  });
+  island.querySelectorAll("input").forEach(function (inp) { inp.addEventListener("click", function (e) { e.stopPropagation(); }); });
+
+  /* ================= popups ================= */
+  var POPS = {
+    popPreset: function () {
+      return '<div class="grp">玻璃风格</div>' + Object.keys(PRESETS).map(function (k) {
+        return '<button class="it" type="button" role="menuitemradio" data-preset="' + k + '" aria-checked="' + (k === presetKey ? "true" : "false") + '"><span class="swatch" style="width:16px;height:16px;border-radius:50%;background:rgb(' + PRESETS[k].rgb.join(",") + ')"></span>' + PRESETS[k].n + '<span class="ck" style="margin-left:auto">' + svg(ICONS.check.d) + "</span></button>";
+      }).join("") + '<div class="sep"></div><button class="it" type="button" role="menuitem" data-custom="1"><span class="ico" style="width:16px;height:16px">' + svg(CORE.glass.d) + "</span>自定义 tint…</button>";
+    },
+    popFont: function () {
+      var rec = [["Segoe UI Variable", "Segoe UI Variable Display, Segoe UI"], ["Microsoft YaHei UI", "Microsoft YaHei UI, Noto Sans SC"], ["Segoe UI", "Segoe UI"]];
+      var all = [["Arial", "Arial"], ["Bahnschrift", "Bahnschrift, Arial"], ["Cascadia Code", "Cascadia Code, monospace"], ["Georgia", "Georgia, serif"], ["KaiTi 楷体", "KaiTi, STKaiti, serif"], ["SimSun 宋体", "SimSun, serif"]];
+      function it(f) { return '<button class="it" type="button" role="menuitemradio" data-font="' + f[0] + '" aria-checked="' + (f[0] === fontName ? "true" : "false") + '" style="font-family:' + f[1] + '">' + f[0] + '<span class="ck" style="margin-left:auto">' + svg(ICONS.check.d) + "</span></button>"; }
+      return '<div class="search"><span class="ico">' + svg(ICONS.search.d) + "</span>搜索字体</div>" + '<div class="grp">推荐</div>' + rec.map(it).join("") + '<div class="grp">全部字体 · 共 214 个</div>' + all.map(it).join("");
+    },
+    popSpeed: function () {
+      return ["慢速", "正常", "快速"].map(function (s) { return '<button class="it" type="button" role="menuitemradio" data-speed="' + s + '" aria-checked="' + (s === speed ? "true" : "false") + '">' + s + '<span class="r">' + { "慢速": "2.4s", "正常": "1.7s", "快速": "1.0s" }[s] + '</span><span class="ck">' + svg(ICONS.check.d) + "</span></button>"; }).join("");
+    },
+    popSnooze: function () {
+      return '<div class="grp">延后到</div>' + ["10 分钟后", "30 分钟后", "1 小时后", "明天同一时间"].map(function (s) { return '<button class="it" type="button" role="menuitem" data-snooze="1">' + s + "</button>"; }).join("");
+    },
+    popWhen: function () {
+      return '<div class="grp">提醒时间</div><button class="it" type="button" role="menuitemradio" aria-checked="false">不提醒</button><button class="it" type="button" role="menuitemradio" aria-checked="true">今天 21:30<span class="ck" style="margin-left:auto">' + svg(ICONS.check.d) + '</span></button><button class="it" type="button" role="menuitemradio" aria-checked="false">明天 09:00</button><button class="it" type="button" role="menuitem">自定义时间…</button>' +
+        '<div class="sep"></div><div class="grp">重复</div><div class="mini-seg"><button type="button" aria-pressed="false">不重复</button><button type="button" aria-pressed="false">每天</button><button type="button" aria-pressed="true">每周</button></div>' +
+        '<div class="mini-seg">' + ["一", "二", "三", "四", "五", "六", "日"].map(function (d, i) { return '<button type="button" aria-pressed="' + (i % 2 === 0 && i < 5 ? "true" : "false") + '">' + d + "</button>"; }).join("") + "</div>";
+    },
+    popFly: function () {
+      var fl = document.getElementById("fly");
+      return '<div class="grp">字号</div><div class="mini-seg">' + [["小", 16, 18], ["中", 18, 20], ["大", 22, 24]].map(function (z) { return '<button type="button" data-fs="' + z[1] + "," + z[2] + '" aria-pressed="' + (flyFs === z[1] ? "true" : "false") + '">' + z[0] + "</button>"; }).join("") + "</div>" +
+        '<button class="it" type="button" role="menuitemcheckbox" data-fly="double">显示下一句<span class="sw" role="presentation" aria-checked="' + fl.classList.contains("double") + '"></span></button>' +
+        '<button class="it" type="button" role="menuitemcheckbox" data-fly="cover">显示专辑封面<span class="sw" role="presentation" aria-checked="' + fl.classList.contains("cover-on") + '"></span></button>' +
+        '<button class="it" type="button" role="menuitemcheckbox" data-fly="clock">显示时钟<span class="sw" role="presentation" aria-checked="' + !fl.classList.contains("noclock") + '"></span></button>' +
+        '<div class="grp">对齐</div><div class="mini-seg"><button type="button" data-align="c" aria-pressed="' + !fl.classList.contains("left") + '">居中</button><button type="button" data-align="l" aria-pressed="' + fl.classList.contains("left") + '">左对齐</button></div>' +
+        '<button class="it" type="button" role="menuitemcheckbox" data-fly="follow">跟随灵动岛玻璃<span class="sw" role="presentation" aria-checked="true"></span></button>' +
+        '<div class="sep"></div><button class="it" type="button" role="menuitem" data-fly="close"><span class="ico" style="width:14px;height:14px">' + svg(ICONS.close.d) + "</span>关闭悬浮歌词</button>";
+    }
+  };
+  var presetKey = "midnight", fontName = "Segoe UI Variable", speed = "正常", flyFs = 18, openPop = null, openBtn = null;
+  function closePops() {
+    scene.querySelectorAll(".pop.open").forEach(function (p) { p.classList.remove("open"); });
+    if (openBtn) openBtn.setAttribute("aria-expanded", "false"); openPop = null; openBtn = null;
+  }
+  function showPop(btn) {
+    var id = btn.getAttribute("data-pop"), pop = document.getElementById(id);
+    if (openPop === pop) { closePops(); return; }
+    closePops(); pop.innerHTML = POPS[id]();
+    var s = scene._s || 1, sr = scene.getBoundingClientRect(), br = btn.getBoundingClientRect();
+    var x = (br.left - sr.left) / s, y = (br.bottom - sr.top) / s + 6, w = Math.max(pop.offsetWidth, 180);
+    if (x + w > 990) x = 990 - w;
+    if (id === "popFly") { y = (br.top - sr.top) / s - pop.offsetHeight - 8; }
+    pop.style.left = x + "px"; pop.style.top = y + "px";
+    pop.classList.add("open"); btn.setAttribute("aria-expanded", "true"); openPop = pop; openBtn = btn;
+    var first = pop.querySelector("button"); if (first) first.focus({ preventScroll: true });
+  }
+  scene.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-pop]");
+    if (b) { e.stopPropagation(); showPop(b); return; }
+    var inPop = e.target.closest(".pop");
+    if (inPop) { e.stopPropagation(); handlePop(e.target, inPop); return; }
+    closePops();
+  });
+  scene.addEventListener("keydown", function (e) { if (e.key === "Escape" && openPop) { var b = openBtn; closePops(); if (b) b.focus(); } });
+  function handlePop(t, pop) {
+    var it = t.closest("button"); if (!it) return;
+    if (it.dataset.preset) { setPreset(it.dataset.preset); closePops(); return; }
+    if (it.dataset.custom) { closePops(); document.getElementById("tintColor").focus(); return; }
+    if (it.dataset.font) { fontName = it.dataset.font; document.getElementById("fontLabel").textContent = fontName; document.getElementById("normalTxt").style.fontFamily = it.style.fontFamily; closePops(); return; }
+    if (it.dataset.speed) { speed = it.dataset.speed; document.getElementById("speedLabel").textContent = speed; scene.style.setProperty("--breath", { "慢速": "2.4s", "正常": "1.7s", "快速": "1s" }[speed]); closePops(); return; }
+    if (it.dataset.snooze) { closePops(); setState("normal"); greet("已延后，到时候再叫你"); return; }
+    if (it.dataset.fs) { var v = it.dataset.fs.split(","); flyFs = +v[0]; var fl = document.getElementById("fly"); fl.style.setProperty("--fs1", v[0] + "px"); fl.style.setProperty("--fs2", v[1] + "px"); pop.innerHTML = POPS.popFly(); return; }
+    if (it.dataset.align) { document.getElementById("fly").classList.toggle("left", it.dataset.align === "l"); pop.innerHTML = POPS.popFly(); return; }
+    if (it.dataset.fly === "double") { toggleDouble(); pop.innerHTML = POPS.popFly(); return; }
+    if (it.dataset.fly === "cover") { document.getElementById("fly").classList.toggle("cover-on"); pop.innerHTML = POPS.popFly(); return; }
+    if (it.dataset.fly === "clock") { document.getElementById("fly").classList.toggle("noclock"); pop.innerHTML = POPS.popFly(); return; }
+    if (it.dataset.fly === "follow") { var sw = it.querySelector(".sw"); sw.setAttribute("aria-checked", sw.getAttribute("aria-checked") === "true" ? "false" : "true"); return; }
+    if (it.dataset.fly === "close") { closePops(); document.getElementById("fly").classList.add("off"); return; }
+    if (pop.id === "popWhen" && it.parentNode.classList.contains("mini-seg")) { it.setAttribute("aria-pressed", it.getAttribute("aria-pressed") === "true" ? "false" : "true"); return; }
+    if (it.getAttribute("role") === "menuitemradio") { closePops(); }
+  }
+
+  /* preset + blur + wall + speed controls */
+  function setPreset(k) {
+    presetKey = k; applyTokens(scene, PRESETS[k]);
+    document.getElementById("presetLabel").textContent = PRESETS[k].n;
+    document.getElementById("setSwatch").style.background = "rgb(" + PRESETS[k].rgb.join(",") + ")";
+    scene.querySelectorAll(".mg").forEach(function (el) { el.classList.toggle("clear-fix", !!PRESETS[k].clear); });
+    var r = document.querySelector('#g-preset input[value="' + k + '"]'); if (r) r.checked = true;
+  }
+  function setBlur(on) {
+    scene.classList.toggle("realblur", on);
+    document.getElementById("swBlur").setAttribute("aria-checked", on ? "true" : "false");
+    var r = document.querySelector('#g-blur input[value="' + (on ? "real" : "fake") + '"]'); if (r) r.checked = true;
+  }
+  function seg(id, name, opts, value, onChange) {
+    var el = document.getElementById(id);
+    el.innerHTML = opts.map(function (o, i) {
+      var oid = "o-" + name + "-" + i;
+      return '<input type="radio" name="' + name + '" id="' + oid + '" value="' + o[0] + '"' + (o[0] === value ? " checked" : "") + '><label for="' + oid + '">' + o[1] + "</label>";
+    }).join("");
+    el.addEventListener("change", function (e) { onChange(e.target.value); });
+  }
+  seg("g-state", "state", [["compactA", "Compact A"], ["compactB", "Compact B"], ["normal", "收起"], ["expanded", "展开"]], "normal", function (v) {
+    if (v === "compactA" || v === "compactB") compactKind = v; setState(v);
+  });
+  seg("g-preset", "preset", Object.keys(PRESETS).map(function (k) { return [k, PRESETS[k].n]; }), "midnight", setPreset);
+  seg("g-blur", "blur", [["fake", "仿玻璃（默认）"], ["real", "真实模糊（实验）"]], "fake", function (v) { setBlur(v === "real"); });
+  seg("g-wall", "wall", [["light", "浅色壁纸"], ["dark", "深色壁纸"], ["busy", "代码窗口"]], "light", function (v) { scene.setAttribute("data-wall", v); });
+  seg("g-tm", "tm", [["1", "正常"], ["4", "慢放 ×4"]], "1", function (v) { scene.style.setProperty("--tm", v); });
+  setPreset("midnight");
+
+  var ta = document.getElementById("tintAlpha");
+  ta.addEventListener("input", function () { document.getElementById("tintAlphaV").textContent = ta.value + "%"; });
+  document.getElementById("applyCustom").addEventListener("click", function () {
+    var hex = document.getElementById("tintColor").value, r = parseInt(hex.substr(1, 2), 16), g = parseInt(hex.substr(3, 2), 16), b = parseInt(hex.substr(5, 2), 16);
+    var lum = (r * 299 + g * 587 + b * 114) / 1000; // same formula as v0.6.1 ContrastBrush
+    var a = ta.value / 100, light = lum >= 150 && a >= .45;
+    var p = { n: "自定义", rgb: [r, g, b], a: a, fam: light ? LIGHT : DARK, sh: light ? ["rgb(90 60 120 / .18)", "rgb(90 60 120 / .10)"] : ["rgb(0 0 0 / .30)", "rgb(0 0 0 / .12)"] };
+    applyTokens(scene, p); document.getElementById("presetLabel").textContent = "自定义";
+    document.getElementById("setSwatch").style.background = hex;
+    scene.querySelectorAll(".mg").forEach(function (el) { el.classList.remove("clear-fix"); });
+    document.querySelectorAll('#g-preset input').forEach(function (i) { i.checked = false; });
+  });
+
+  /* ================= floating lyrics ================= */
+  var LYR = ["故事的小黄花 从出生那年就飘着", "童年的荡秋千 随记忆一直晃到现在", "Re So So Si Do Si La", "So La Si Si Si Si La Si La So", "吹着前奏望着天空", "我想起花瓣试着掉落"];
+  var li = 0, fly = document.getElementById("fly"), cur = document.getElementById("flyCur"), nxt = document.getElementById("flyNxt");
+  function nextLine() {
+    li = (li + 1) % LYR.length;
+    var a = LYR[li], b = LYR[(li + 1) % LYR.length], d = 160 * tm();
+    cur.classList.add("out"); nxt.classList.add("out");
+    setTimeout(function () {
+      cur.textContent = a; nxt.textContent = b;
+      cur.classList.remove("out"); nxt.classList.remove("out"); cur.classList.add("in0"); nxt.classList.add("in0");
+      void cur.offsetWidth; cur.classList.remove("in0"); nxt.classList.remove("in0");
+      document.getElementById("lyP").textContent = LYR[(li + LYR.length - 1) % LYR.length];
+      document.getElementById("lyC").textContent = a; document.getElementById("lyN").textContent = b;
+      var nt = document.getElementById("normalTxt"); if (!greeting) nt.textContent = a;
+    }, d);
+  }
+  var reduce = false; try { reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+  if (!reduce) setInterval(nextLine, 3400);
+  function toggleDouble() { fly.classList.toggle("double"); }
+  document.getElementById("flyLines").addEventListener("click", function (e) { e.stopPropagation(); toggleDouble(); });
+  fly.addEventListener("dblclick", function (e) { if (!e.target.closest("button")) toggleDouble(); });
+  document.getElementById("flyClose").addEventListener("click", function (e) { e.stopPropagation(); fly.classList.add("off"); });
+  var flyLocked = false;
+  document.getElementById("flyLock").addEventListener("click", function (e) {
+    e.stopPropagation(); flyLocked = !flyLocked;
+    this.innerHTML = '<span class="ico">' + svg(ICONS[flyLocked ? "lock" : "unlock"].d) + "</span>";
+    this.setAttribute("aria-label", flyLocked ? "解锁歌词位置" : "锁定歌词位置");
+  });
+  document.getElementById("flyToggle").addEventListener("click", function (e) { e.stopPropagation(); fly.classList.toggle("off"); });
+  document.getElementById("simFly").addEventListener("click", function () { fly.classList.toggle("off"); });
+  function clock() {
+    var d = new Date(), h = d.getHours(), m = d.getMinutes();
+    document.getElementById("flyClock").textContent = (h < 12 ? "上午 " : "下午 ") + ((h % 12) || 12) + ":" + (m < 10 ? "0" : "") + m;
+  }
+  clock(); setInterval(clock, 20000);
+
+  /* ================= simulated events ================= */
+  var greeting = false;
+  function greet(text) {
+    if (current !== "normal") setState("normal");
+    var nt = document.getElementById("normalTxt"); greeting = true;
+    nt.classList.add("swap");
+    setTimeout(function () { nt.textContent = text; nt.classList.remove("swap"); }, 160 * tm());
+    setTimeout(function () { nt.classList.add("swap"); setTimeout(function () { greeting = false; nt.textContent = LYR[li]; nt.classList.remove("swap"); }, 160 * tm()); }, 6000);
+  }
+
+  /* ================= greetings ================= */
+  var POOL = {
+    dawn: { n: "清晨 5–8 点", l: ["早安，{name}。今天也慢慢醒过来就好", "{name}起得好早，先喝杯温水吧", "天刚亮，{name}今天想先做哪件事？", "早安。新的一天，从一件小事开始", "这么早就见面啦，今天会是安静的一天"] },
+    morning: { n: "上午 8–11 点", l: ["早上好，{name}今天打算做点什么？", "{name}，很高兴今天又见到你", "上午好，状态不错的话先做最难的那件", "早上好，今天也一起慢慢来", "早呀，今天的第一首歌放什么？"] },
+    noon: { n: "中午 11–13 点", l: ["中午了，{name}记得好好吃饭", "先吃饭，事情不会跑掉的", "{name}，午饭想好吃什么了吗？", "午安，吃完饭可以眯一小会儿"] },
+    afternoon: { n: "下午 13–18 点", l: ["下午好，{name}，困了就起来走两步", "下午茶时间到了吗？", "今天已经过去一大半，你做得很好", "{name}，喝口水再继续吧", "下午好，再专注一小会儿就好"] },
+    dusk: { n: "傍晚 18–20 点", l: ["傍晚好，{name}，今天辛苦了", "天快黑了，给自己放首歌吧", "{name}，晚饭吃点好的", "一天快结束了，剩下的慢慢来"] },
+    evening: { n: "晚上 20–23 点", l: ["晚上好，{name}，今天过得怎么样？", "{name}回来啦，欢迎回家", "晚上的时间留给喜欢的事吧", "晚上好，要不要听点轻一点的歌？"] },
+    night: { n: "深夜 23–5 点", l: ["夜深了，{name}，早点休息好吗", "这么晚还在呀，别熬太久", "深夜了，音乐小声一点，心情放松一点", "{name}，剩下的事交给明天的你"] },
+    todo: { n: "今天有任务", l: ["今天有 {count} 件事，先从最小的那件开始吧", "{name}，今天有 {count} 件事等你，一件一件来", "下一件是「{next}」，{nexttime} 提醒你", "今天的清单有 {count} 件，不着急，慢慢划掉"] },
+    overdue: { n: "有逾期", l: ["有 {overdue} 件事过期了，要不要现在处理掉？", "{name}，「{next}」还在等你哦", "过期的事先别焦虑，挑一件最快的解决它", "先把「{next}」做完，后面就轻松了"] },
+    done: { n: "今天全部完成", l: ["今天的事都做完了，{name}真棒", "清单已清空，剩下的时间都是你的", "全部完成，可以心安理得地发呆了", "{name}今天好厉害，奖励自己一首歌吧"] },
+    empty: { n: "没有任务", l: ["今天还没有安排，想到什么随时加进来", "空白的一天也很好，{name}想做点什么？", "今天很自由，想做什么都可以"] },
+    monday: { n: "周一", l: ["周一好，{name}，这周也会顺顺利利的", "新的一周开始了，先定一件最重要的事"] },
+    friday: { n: "周五", l: ["周五啦，{name}再坚持一下就是周末", "周五了，今天可以对自己好一点"] },
+    weekend: { n: "周末", l: ["周末好，{name}，今天允许自己慢一点", "周末也来看我啦，那就陪你一起"] },
+    back: { n: "好久没打开（3 天以上）", l: ["{name}好久不见，有点想你", "欢迎回来，这几天过得还好吗？"] },
+    first: { n: "第一次启动", l: ["你好，我是 Miya Island，以后请多指教", "初次见面，{name}，我会安静地待在屏幕顶上"] }
+  };
+  var TIMEKEYS = ["dawn", "morning", "noon", "afternoon", "dusk", "evening", "night"], STATEKEYS = ["todo", "overdue", "done", "empty"], DAYKEYS = ["none", "monday", "friday", "weekend", "back", "first"];
+  var total = 0; Object.keys(POOL).forEach(function (k) { total += POOL[k].l.length; });
+  document.getElementById("poolCount").textContent = "共 " + total + " 句（第一版 6 句）";
+  function esc(t) { return t.replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+  document.getElementById("pool").innerHTML = Object.keys(POOL).map(function (k) {
+    return '<div class="card"><h3>' + POOL[k].n + "<span>" + POOL[k].l.length + " 句</span></h3><ul>" + POOL[k].l.map(function (x) { return "<li>" + esc(x).replace(/\{(\w+)\}/g, "<mark>{$1}</mark>") + "</li>"; }).join("") + "</ul></div>";
+  }).join("");
+  function bucket(h) { return h < 5 ? "night" : h < 8 ? "dawn" : h < 11 ? "morning" : h < 13 ? "noon" : h < 18 ? "afternoon" : h < 20 ? "dusk" : h < 23 ? "evening" : "night"; }
+  var CTX = { count: 3, overdue: 1, next: "给妈妈回电话", nexttime: "21:30", weekday: "周日" };
+  var recent = [], customLines = ["{name}，今天也要开开心心的", "欢迎回来，{name}"], customOnly = false;
+  function fill(line, name) {
+    return line.replace(/\{name\}/g, name).replace(/\{count\}/g, CTX.count).replace(/\{overdue\}/g, CTX.overdue).replace(/\{next\}/g, CTX.next).replace(/\{nexttime\}/g, CTX.nexttime).replace(/\{weekday\}/g, CTX.weekday);
+  }
+  function pick(name, tk, sk, dk, withCustom) {
+    var cand = [];
+    function add(arr, w) { arr.forEach(function (l) { if (!name && l.indexOf("{name}") >= 0) return; var ww = w * (name && l.indexOf("{name}") >= 0 ? 1.5 : 1); cand.push([l, ww]); }); }
+    if (!(withCustom && customOnly && customLines.length)) {
+      add(POOL[tk].l, 1); add(POOL[sk].l, sk === "overdue" ? 2.5 : 1.2); if (dk && dk !== "none") add(POOL[dk].l, dk === "first" || dk === "back" ? 4 : 1.6);
+    }
+    if (withCustom) add(customLines, 2);
+    var fresh = cand.filter(function (c) { return recent.indexOf(c[0]) < 0; }); if (!fresh.length) fresh = cand;
+    var sum = fresh.reduce(function (a, c) { return a + c[1]; }, 0), r = Math.random() * sum, chosen = fresh[0][0];
+    for (var i = 0; i < fresh.length; i++) { r -= fresh[i][1]; if (r <= 0) { chosen = fresh[i][0]; break; } }
+    recent.push(chosen); if (recent.length > 8) recent.shift();
+    return fill(chosen, name);
+  }
+  function subLine(sk) {
+    return { todo: "今天 " + CTX.count + " 件 · 下一件 " + CTX.nexttime + " " + CTX.next, overdue: CTX.overdue + " 件已过期 · " + CTX.next, done: "今天完成了 5 件", empty: "今天没有安排" }[sk];
+  }
+  function opt(sel, keys, label) { document.getElementById(sel).innerHTML = keys.map(function (k) { return '<option value="' + k + '">' + (k === "none" ? "无" : POOL[k].n) + "</option>"; }).join(""); }
+  opt("tryTime", TIMEKEYS); opt("tryState", STATEKEYS); opt("tryDay", DAYKEYS);
+  document.getElementById("tryTime").value = "morning";
+  function tryOnce() {
+    var name = document.getElementById("tryName").value.trim(), sk = document.getElementById("tryState").value;
+    document.getElementById("tryOut").textContent = pick(name, document.getElementById("tryTime").value, sk, document.getElementById("tryDay").value, false);
+    document.getElementById("trySub").textContent = subLine(sk);
+  }
+  document.getElementById("tryBtn").addEventListener("click", tryOnce);
+  ["tryTime", "tryState", "tryDay"].forEach(function (id) { document.getElementById(id).addEventListener("change", tryOnce); });
+  applyTokens(document.getElementById("tryCard"), PRESETS.midnight);
+
+  /* nickname: one value, three inputs */
+  var nickInputs = ["nick", "swNick", "tryName"].map(function (id) { return document.getElementById(id); });
+  function nickname() { return nickInputs[0].value.trim(); }
+  function hourHello(h) { return h < 5 ? "夜深了" : h < 11 ? "早上好" : h < 13 ? "中午好" : h < 18 ? "下午好" : "晚上好"; }
+  function syncTitle() { var n = nickname(); document.getElementById("expTitle").textContent = n ? hourHello(new Date().getHours()) + "，" + n : "Miya Island"; }
+  nickInputs.forEach(function (inp) {
+    inp.addEventListener("click", function (e) { e.stopPropagation(); });
+    inp.addEventListener("input", function () { nickInputs.forEach(function (o) { if (o !== inp) o.value = inp.value; }); syncTitle(); });
+  });
+  syncTitle();
+
+  /* startup greeting card in the island */
+  var greetTimer = 0;
+  function greetCard() {
+    var h = new Date().getHours(), d = new Date().getDay();
+    var dk = d === 1 ? "monday" : d === 5 ? "friday" : (d === 0 || d === 6) ? "weekend" : "none";
+    document.getElementById("gTitle").textContent = pick(nickname(), bucket(h), "todo", dk, true);
+    document.getElementById("gSub").textContent = subLine("todo");
+    var bar = document.getElementById("gProg"); bar.classList.remove("run"); void bar.offsetWidth;
+    bar.style.animationDuration = (6000 * tm()) + "ms"; bar.classList.add("run");
+    setState("greet");
+    clearTimeout(greetTimer); greetTimer = setTimeout(function () { if (current === "greet") setState("normal"); }, 6000 * tm());
+  }
+  document.getElementById("simGreet").addEventListener("click", greetCard);
+  island.querySelector(".lay-greet").addEventListener("click", function (e) { e.stopPropagation(); setState("normal"); });
+
+  /* avatar controls */
+  var avMode = "off";
+  function setAvMode(m) {
+    avMode = m; scene.classList.toggle("has-av", m !== "off");
+    document.getElementById("swAv").setAttribute("aria-checked", m !== "off" ? "true" : "false");
+    var r = document.querySelector('#g-av input[value="' + m + '"]'); if (r) r.checked = true;
+  }
+  var avFile = document.getElementById("avFile");
+  avFile.addEventListener("change", function () {
+    var f = avFile.files && avFile.files[0]; if (!f) return;
+    var rd = new FileReader(); rd.onload = function () { setAvImg('url("' + rd.result + '")'); setAvMode("custom"); }; rd.readAsDataURL(f);
+    avFile.value = "";
+  });
+  seg("g-av", "av", [["off", "关闭"], ["default", "默认头像"], ["custom", "自定义图片…"]], "off", function (v) {
+    if (v === "custom") { avFile.click(); var r = document.querySelector('#g-av input[value="' + avMode + '"]'); if (r) r.checked = true; return; }
+    if (v === "default") setAvImg(AV_DEFAULT);
+    setAvMode(v);
+  });
+  function setAvs(v) {
+    scene.setAttribute("data-avs", v);
+    document.querySelectorAll("#swAvs button").forEach(function (b) { var on = b.getAttribute("data-avs") === v; b.setAttribute("aria-pressed", on ? "true" : "false"); b.classList.toggle("ghost", !on); });
+    document.getElementById("avBig").style.boxShadow = v === "badge" ? "none" : "";
+    var r = document.querySelector('#g-avs input[value="' + v + '"]'); if (r) r.checked = true;
+  }
+  seg("g-avs", "avs", [["ring", "光环"], ["badge", "角标"]], "ring", setAvs);
+  setAvs("ring");
+
+  /* settings window */
+  var OTHER = {
+    general: ["开机自启动（默认关闭，状态从注册表读取）", "启动时显示：灵动岛 / 悬浮歌词 / 两个都显示", "启动时为 Compact", "鼠标离开后自动收起", "重新居中 · 退出"],
+    look: ["玻璃风格：Milk / Rose / Lavender / Midnight / Clear Glass / 自定义 tint", "真实背景模糊（实验）", "标题字体（带预览和搜索的下拉框）、待机标题、文字颜色", "指示灯颜色、呼吸灯开关与速度（与 v0.6.1 相同）", "小岛大小 70%~160%", "减少动态效果"],
+    lyrics: ["字号：小 / 中 / 大", "显示下一句 · 显示时钟 · 显示专辑封面", "对齐：居中 / 左对齐", "跟随灵动岛玻璃，或单独选 preset", "锁定位置 · 重置位置"],
+    tasks: ["默认提醒时间", "延后选项：10 分钟 / 30 分钟 / 1 小时 / 明天", "已完成的任务保留 7 天后自动清理", "导出 / 备份 tasks.json"],
+    adv: ["数据位置：%LocalAppData%\\MiyaIsland", "打开数据文件夹", "恢复所有默认设置", "版本 0.7.0"]
+  };
+  var swNav = document.querySelectorAll("#setwin nav button");
+  swNav.forEach(function (b) {
+    b.addEventListener("click", function () {
+      swNav.forEach(function (x) { x.setAttribute("aria-selected", x === b ? "true" : "false"); });
+      var k = b.getAttribute("data-sp"), g = k === "greet";
+      document.querySelector('[data-spane="greet"]').hidden = !g; document.querySelector('[data-spane="other"]').hidden = g;
+      if (!g) { document.getElementById("otherTitle").textContent = b.textContent; document.getElementById("otherList").innerHTML = OTHER[k].map(function (x) { return "<li>" + esc(x) + "</li>"; }).join(""); }
+    });
+  });
+  var setwin = document.getElementById("setwin");
+  setwin.querySelectorAll(".sw").forEach(function (sw) {
+    sw.addEventListener("click", function () {
+      var on = sw.getAttribute("aria-checked") !== "true"; sw.setAttribute("aria-checked", on ? "true" : "false");
+      if (sw.id === "swAv") setAvMode(on ? (avMode === "off" ? "default" : avMode) : "off");
+    });
+  });
+  document.getElementById("avPick").addEventListener("click", function () { avFile.click(); });
+  document.getElementById("avReset").addEventListener("click", function () { setAvImg(AV_DEFAULT); document.getElementById("avZoom").value = 100; document.getElementById("avBig").style.setProperty("--zoom", "100%"); if (avMode === "custom") setAvMode("default"); });
+  document.getElementById("avZoom").addEventListener("input", function () { document.getElementById("avBig").style.setProperty("--zoom", this.value + "%"); });
+  document.querySelectorAll("#swAvs button").forEach(function (b) { b.addEventListener("click", function () { setAvs(b.getAttribute("data-avs")); }); });
+  document.querySelectorAll("#swSrc button").forEach(function (b, i) {
+    b.addEventListener("click", function () {
+      customOnly = i === 1;
+      document.querySelectorAll("#swSrc button").forEach(function (x, j) { x.setAttribute("aria-pressed", j === i ? "true" : "false"); x.classList.toggle("ghost", j !== i); });
+    });
+  });
+  function renderCustom() {
+    document.getElementById("cgCount").textContent = customLines.length + " / 50";
+    document.getElementById("cgList").innerHTML = customLines.length ? customLines.map(function (l, i) {
+      return '<div class="cg-row"><span>' + esc(l).replace(/\{(\w+)\}/g, "<code>{$1}</code>") + '</span><button class="ib" type="button" data-del="' + i + '" aria-label="删除这句"><span class="ico">' + svg(ICONS.trash.d) + "</span></button></div>";
+    }).join("") : '<div class="cg-row"><span style="color:var(--ink3)">还没有自定义问候</span><span></span></div>';
+  }
+  renderCustom();
+  document.getElementById("cgList").addEventListener("click", function (e) { var b = e.target.closest("[data-del]"); if (!b) return; customLines.splice(+b.getAttribute("data-del"), 1); renderCustom(); });
+  var cgInput = document.getElementById("cgInput");
+  function addCustom() { var v = cgInput.value.trim(); if (!v || customLines.length >= 50) return; customLines.push(v); cgInput.value = ""; renderCustom(); }
+  document.getElementById("cgAdd").addEventListener("click", addCustom);
+  cgInput.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); addCustom(); } });
+  document.getElementById("phChips").innerHTML = ["{name}", "{count}", "{next}", "{nexttime}", "{weekday}"].map(function (t) { return '<button type="button" data-ph="' + t + '">' + t + "</button>"; }).join("");
+  document.getElementById("phChips").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-ph]"); if (!b) return;
+    var st = cgInput.selectionStart || cgInput.value.length, t = b.getAttribute("data-ph");
+    cgInput.value = (cgInput.value.slice(0, st) + t + cgInput.value.slice(st)).slice(0, 40); cgInput.focus(); cgInput.setSelectionRange(st + t.length, st + t.length);
+  });
+  document.getElementById("swTry").addEventListener("click", function () {
+    var h = new Date().getHours(); document.getElementById("swTryOut").textContent = "“" + pick(nickname(), bucket(h), "todo", "none", true) + "”";
+  });
+  document.getElementById("openFull").addEventListener("click", function (e) { e.stopPropagation(); document.getElementById("settingswin").scrollIntoView({ behavior: "smooth" }); });
+
+  document.getElementById("simRemind").addEventListener("click", function () { setState("remind"); });
+  island.querySelectorAll("[data-remind]").forEach(function (b) {
+    b.addEventListener("click", function (e) { e.stopPropagation(); setState("normal"); greet(b.dataset.remind === "done" ? "已完成：给妈妈回电话" : "已忽略这一次提醒"); });
+  });
+  document.addEventListener("click", function (e) { if (!scene.contains(e.target)) closePops(); });
+})();
+</script>

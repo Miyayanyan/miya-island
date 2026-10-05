@@ -1,0 +1,117 @@
+<Window x:Class="MiyaIsland.FloatingLyricsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="clr-namespace:MiyaIsland.Controls"
+        Title="Miya Island 悬浮歌词"
+        Width="592" Height="108"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True"
+        FontFamily="{StaticResource Font.UI}" UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="Grayscale"
+        Loaded="Window_Loaded">
+  <Window.Resources>
+    <Style x:Key="LyricButton" TargetType="Button">
+      <Setter Property="Width" Value="24" />
+      <Setter Property="Height" Value="24" />
+      <Setter Property="Margin" Value="1,0" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Ink2}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="8">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Brush.ControlHover}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+
+  <!-- 固定画布：四周 16 DIP 阴影边距，窗口大小不变，只有胶囊在单行 / 双行之间变高 -->
+  <Grid>
+    <Grid x:Name="LyricHost" Width="560" Height="44" Margin="16,16,16,0"
+          HorizontalAlignment="Center" VerticalAlignment="Top">
+
+
+      <!-- 投影板 + 底色：Effect 不包住文字 -->
+      <Border x:Name="ShadowPlate" CornerRadius="22" IsHitTestVisible="False"
+              Background="{DynamicResource Brush.IslandBase}">
+        <Border.Effect>
+          <DropShadowEffect Color="{DynamicResource Color.GlassShadow}" Direction="270" ShadowDepth="4" BlurRadius="18" Opacity="0.38"
+                            RenderingBias="Performance" />
+        </Border.Effect>
+      </Border>
+
+      <Border x:Name="LyricBorder" CornerRadius="22" Background="Transparent" Cursor="SizeAll"
+              PreviewMouseLeftButtonDown="LyricBorder_PreviewMouseLeftButtonDown">
+        <Grid>
+          <Grid x:Name="BackdropLayer" Visibility="Collapsed" IsHitTestVisible="False" ClipToBounds="True"><Image x:Name="BackdropImage" Width="592" Height="108" Margin="-16,-16,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Stretch="Fill"/><Border Background="{DynamicResource Brush.IslandBase}"/></Grid>
+          <!-- 与主岛相同的玻璃层 -->
+          <Border CornerRadius="{Binding CornerRadius, ElementName=LyricBorder}" Opacity="0.08" IsHitTestVisible="False">
+            <Border.Background>
+              <ImageBrush ImageSource="pack://application:,,,/MiyaIsland;component/Assets/noise.png" TileMode="Tile" Stretch="None"
+                          Viewport="0,0,128,128" ViewportUnits="Absolute" />
+            </Border.Background>
+          </Border>
+          <Border CornerRadius="{Binding CornerRadius, ElementName=LyricBorder}" IsHitTestVisible="False"
+                  Background="{DynamicResource Brush.GlassSheen}" />
+          <Border CornerRadius="{Binding CornerRadius, ElementName=LyricBorder}" IsHitTestVisible="False"
+                  BorderBrush="{DynamicResource Brush.GlassEdge}" BorderThickness="3">
+            <Border.Effect>
+              <BlurEffect x:Name="GlassEdgeBlur" Radius="9" RenderingBias="Performance" />
+            </Border.Effect>
+          </Border>
+          <Border CornerRadius="{Binding CornerRadius, ElementName=LyricBorder}" BorderBrush="{DynamicResource Brush.GlassInnerDark}" BorderThickness="0,0,2,3" IsHitTestVisible="False"><Border.Effect><BlurEffect Radius="18"/></Border.Effect></Border>
+          <Border CornerRadius="{Binding CornerRadius, ElementName=LyricBorder}" BorderBrush="{DynamicResource Brush.GlassInnerLight}" BorderThickness="1" IsHitTestVisible="False"><Border.Effect><BlurEffect Radius="2.4"/></Border.Effect></Border>
+          <Border CornerRadius="{Binding CornerRadius, ElementName=LyricBorder}" IsHitTestVisible="False"
+                  BorderThickness="1.2" BorderBrush="{DynamicResource Brush.GlassRimTopLeft}" />
+          <Border CornerRadius="{Binding CornerRadius, ElementName=LyricBorder}" IsHitTestVisible="False"
+                  BorderThickness="1.2" BorderBrush="{DynamicResource Brush.GlassRimBottomRight}" />
+
+          <!-- 内容：左 20 内边距；歌词在 “左边距 ~ 右侧位” 之间居中；右侧位宽 96，平时是时钟，悬停时是按钮 -->
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="96" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="96" />
+            </Grid.ColumnDefinitions>
+
+            <Border x:Name="AlbumCover" Width="28" Height="28" CornerRadius="8" Background="{DynamicResource Brush.Primary}" Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+            <StackPanel Grid.Column="1" x:Name="LyricTextArea" VerticalAlignment="Center">
+              <TextBlock x:Name="CurrentLyricText" Text="播放音乐后显示歌词"
+                         Foreground="{DynamicResource Brush.Ink}" FontSize="{StaticResource FontSize.FloatLyric}"
+                         FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center"
+                         TextTrimming="CharacterEllipsis">
+                <TextBlock.RenderTransform>
+                  <TranslateTransform x:Name="CurrentLyricShift" />
+                </TextBlock.RenderTransform>
+              </TextBlock>
+              <TextBlock x:Name="NextLyricText" Text=""
+                         Foreground="{DynamicResource Brush.Ink2}" FontSize="{StaticResource FontSize.Title}"
+                         HorizontalAlignment="Center" TextAlignment="Center" TextTrimming="CharacterEllipsis"
+                         Margin="0,2,0,0" Visibility="Collapsed" />
+            </StackPanel>
+
+            <Grid Grid.Column="2">
+              <TextBlock x:Name="ClockText" Text="下午 6:59" Foreground="{DynamicResource Brush.Ink2}"
+                         FontSize="{StaticResource FontSize.Caption}" FontWeight="SemiBold"
+                         Typography.NumeralAlignment="Tabular"
+                         HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" />
+              <StackPanel x:Name="ControlStrip" Orientation="Horizontal" Opacity="0" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0">
+                <Button x:Name="MoreButton" Style="{StaticResource Button.Icon}" Width="24" Height="24" Padding="0" Margin="0" ToolTip="更多" Click="More_Click"><c:IconView Width="15" Height="15" Data="{StaticResource Icon.More}"/></Button>
+              </StackPanel>
+            </Grid>
+          </Grid>
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>
