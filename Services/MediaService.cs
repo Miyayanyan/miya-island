@@ -19,15 +19,43 @@ public sealed class MediaService
     private string _thumbnailKey = "";
     private BitmapSource? _thumbnail;
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
+    private string? _chosenApp;
 
     public async Task InitializeAsync()
     {
         _manager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
     }
 
+    /// <summary>
+    /// 选一个会话：Windows 的“当前会话”不一定是正在放歌的那个（比如浏览器里暂停的视频），
+    /// 所以优先选正在播放的；上一次选中的如果还在播放就继续用它，避免来回跳。
+    /// </summary>
+    private GlobalSystemMediaTransportControlsSession? PickSession()
+    {
+        if (_manager is null) return null;
+        var current = _manager.GetCurrentSession();
+        IReadOnlyList<GlobalSystemMediaTransportControlsSession> sessions;
+        try { sessions = _manager.GetSessions(); } catch { return current; }
+        if (sessions.Count == 0) { _chosenApp = null; return current; }
+        static bool Playing(GlobalSystemMediaTransportControlsSession s)
+        {
+            try { return s.GetPlaybackInfo().PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing; }
+            catch { return false; }
+        }
+        var playing = sessions.Where(Playing).ToList();
+        var chosen = playing.FirstOrDefault(s => s.SourceAppUserModelId == _chosenApp)
+            ?? (current is not null && playing.Any(s => s.SourceAppUserModelId == current.SourceAppUserModelId) ? current : null)
+            ?? playing.FirstOrDefault()
+            ?? sessions.FirstOrDefault(s => s.SourceAppUserModelId == _chosenApp)
+            ?? current
+            ?? sessions[0];
+        _chosenApp = chosen.SourceAppUserModelId;
+        return chosen;
+    }
+
     public async Task<MediaSnapshot> GetCurrentAsync()
     {
-        var session = _manager?.GetCurrentSession();
+        var session = PickSession();
         if (session is null) { _thumbnailKey = ""; _thumbnail = null; return new MediaSnapshot(); }
 
         try
@@ -77,7 +105,7 @@ public sealed class MediaService
 
     public async Task ToggleAsync()
     {
-        var session = _manager?.GetCurrentSession();
+        var session = PickSession();
         if (session is null) return;
         var status = session.GetPlaybackInfo().PlaybackStatus;
         if (status == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
@@ -88,13 +116,13 @@ public sealed class MediaService
 
     public async Task PreviousAsync()
     {
-        var session = _manager?.GetCurrentSession();
+        var session = PickSession();
         if (session is not null) await session.TrySkipPreviousAsync();
     }
 
     public async Task NextAsync()
     {
-        var session = _manager?.GetCurrentSession();
+        var session = PickSession();
         if (session is not null) await session.TrySkipNextAsync();
     }
 }

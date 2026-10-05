@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>MiyaIsland</AssemblyName>
     <RootNamespace>MiyaIsland</RootNamespace>
-    <Version>0.7.0</Version>
+    <Version>0.7.1</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\MiyaIsland.ico</ApplicationIcon>
   </PropertyGroup>
