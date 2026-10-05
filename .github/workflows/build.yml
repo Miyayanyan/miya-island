@@ -84,8 +84,16 @@ jobs:
         run: |
           Copy-Item publish/MiyaIsland.exe MiyaIsland.exe
           Copy-Item 先看这里.txt ReadMe.txt  # GitHub 会把中文附件名改成 default.txt
+          # 轻量版：不内置 .NET 运行时，只有几 MB；没装 .NET 8 桌面运行时的电脑第一次打开会提示去微软官网安装
+          dotnet publish MiyaIsland.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish-lite -nologo
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Copy-Item publish-lite/MiyaIsland.exe MiyaIsland-Lite.exe
           $tag = $env:RELEASE_TAG
           if ($tag -notmatch '^v\d+\.\d+\.\d+$') { throw "标签格式不对：$tag" }
           $notes = Get-Content "docs/release-notes/$tag.md" -Raw -Encoding utf8 -ErrorAction SilentlyContinue
           if (-not $notes) { $notes = "Miya Island $tag" }
-          gh release create $tag MiyaIsland.exe "ReadMe.txt#使用说明" --target ${{ github.sha }} --title "Miya Island $tag" --notes $notes
+          $assets = @("MiyaIsland.exe#完整版（推荐，直接打开）", "MiyaIsland-Lite.exe#轻量版（需要 .NET 8 桌面运行时）", "ReadMe.txt#使用说明")
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) { gh release upload $tag @assets --clobber }
+          else { gh release create $tag @assets --target ${{ github.sha }} --title "Miya Island $tag" --notes $notes }
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
